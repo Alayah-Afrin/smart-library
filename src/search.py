@@ -497,7 +497,7 @@ def understand_query(original_query, sys):
 
 # ---------- search ----------
 
-def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False):
+def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False, online=True):
 
     if not query or not query.strip():
         pool = sys['work_dedup']
@@ -752,7 +752,7 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
     else:
         results = ranked.head(top_k)
 
-    if len(results) == 0 or results['score'].max() < 0.1:
+    if online and (len(results) == 0 or results['score'].max() < 0.1):
         live_results = live_lookup(query)
         if live_results:
             suggestion = suggestion or "Showing live results from Open Library"
@@ -769,21 +769,28 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
 
     # 4. start the online lookup now so it runs while covers are fetched
     live_future = None
-    if (ENABLE_LIVE_SUPPLEMENT and len(original_query.split()) <= 4
+    if (online and ENABLE_LIVE_SUPPLEMENT and len(original_query.split()) <= 4
             and not wants_author and category_filter not in CATEGORY_GROUPS and not free_only):
         live_future = live_executor.submit(live_lookup, original_query, 3, 8)
 
     def refresh_cover(row):
         missing = pd.isna(row['cover_url']) or row['cover_url'] == ''
         if row['source'] == 'book_crossing_only' or missing:
+            if not online:
+                # website: no waiting on Open Library here. The browser loads the cover by ISBN by itself
+                # (and shows the title card if there is none), after the page is already on screen.
+                return isbn_cover_url(row['isbn13']) or (row['cover_url'] if not missing else '')
             return get_better_cover(row['isbn13'], row['title'], row['author'], row['cover_url'])
         return row['cover_url']
 
     results = results.copy().reset_index(drop=True)
-    rows_to_fetch = results.head(5)
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        new_covers = list(executor.map(refresh_cover, [row for _, row in rows_to_fetch.iterrows()]))
-    results.loc[:4, 'cover_url'] = new_covers
+    rows_to_fetch = results.head(5 if online else 24)
+    if online:
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            new_covers = list(executor.map(refresh_cover, [row for _, row in rows_to_fetch.iterrows()]))
+    else:
+        new_covers = [refresh_cover(row) for _, row in rows_to_fetch.iterrows()]
+    results.loc[:len(new_covers) - 1, 'cover_url'] = new_covers
     if query_was_corrected and not suggestion:
         suggestion = f"Searched for: {query}"
 
@@ -808,6 +815,12 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
 
 
 cover_cache = {}
+
+
+def isbn_cover_url(isbn13):
+    """Open Library cover image by ISBN, loaded straight by the browser (no server wait). '' if no real ISBN."""
+    isbn = str(isbn13 or '').strip()
+    return f"https://covers.openlibrary.org/b/isbn/{isbn}-M.jpg" if re.fullmatch(r'\d{9}[\dX]|\d{13}', isbn) else ''
 
 
 def get_better_cover(isbn13, title, author, fallback_url):
@@ -909,20 +922,20 @@ SHORT_FORMS = {
 }
 
 
-def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False):
+def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False, online=True):
     """Public entry point: expand short forms, run the search, then attach the 'why' chips."""
     short = fold(query or '').strip().strip('.')
     expanded = SHORT_FORMS.get(short)
     q = expanded or query
     df, banner = _search_core(q, sys, mood_filter=mood_filter, category_filter=category_filter,
-                              top_k=top_k, free_only=free_only)
+                              top_k=top_k, free_only=free_only, online=online)
     # Safety net: nothing found, but a title is a very close spelling match -> search that title instead
     if len(df) == 0 and q and q.strip() and (banner or '').startswith('No books match'):
         tb = process.extractOne(proc(q), sys['title_proc'], scorer=fuzz.token_sort_ratio, score_cutoff=88)
         if tb:
             title = sys['title_list'][tb[2]]
             df2, _ = _search_core(title, sys, mood_filter=mood_filter, category_filter=category_filter,
-                                  top_k=top_k, free_only=free_only)
+                                  top_k=top_k, free_only=free_only, online=online)
             if len(df2):
                 df, banner, q = df2, f"Did you mean “{title}”? Showing results for it.", title
     if expanded and (not banner or banner.startswith('Searched for')):
@@ -946,3 +959,18 @@ def todays_pick(sys, day=None):
     row = pool.iloc[day.toordinal() % len(pool)]
     one = add_why(row.drop(['_base', '_h']).to_frame().T.reset_index(drop=True), '', '', None)
     return one.iloc[0].to_dict()
+
+def online_extra(query, sys, limit=6):
+    """Books from Open Library that are NOT already in our catalog (e.g. published after 2004).
+    The results page loads these after it is already on screen, so a slow Open Library never delays a search."""
+    q = (query or '').strip()
+    if not q:
+        return pd.DataFrame()
+    found = live_lookup(q, limit, 8)
+    keep = [e for e in found
+            if e.get('title') and make_dedup_key(e['title'], e.get('author') or '') not in sys['dedup_keys']]
+    if not keep:
+        return pd.DataFrame()
+    df = pd.DataFrame(keep)
+    df['section'] = LIVE_LABEL
+    return add_why(df, q, '', None)

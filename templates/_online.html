@@ -1,0 +1,7 @@
+{# the late "Also found online" section, fetched by the results page #}
+{% if books %}
+<h2 class="section-heading">Also found online (Open Library)</h2>
+{% for book in books %}
+{% include '_card.html' %}
+{% endfor %}
+{% endif %}

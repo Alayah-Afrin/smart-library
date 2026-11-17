@@ -636,3 +636,11 @@ html[data-theme="dark"] .admin-login input, html[data-theme="dark"] .pager-jump 
 html[data-theme="dark"] .reader-text { color: #e4dccf; }
 html[data-theme="dark"] .reader-text h2 { color: #d9a77e; }
 html[data-theme="dark"] .reader-tools { background: var(--paper); }
+
+/* phones: buttons at least 44px tall so they're easy to tap */
+@media (max-width: 640px) {
+  .btn-primary, .btn-secondary { padding: 12px 10px; }
+  .card-secondary .summary-btn, .save-btn.icon-only, .save-btn, .theme-btn, .tool-btn, .pager-btn { min-height: 44px; }
+  .save-btn.icon-only { width: 44px; }
+  .report-reason, .report-btn { min-height: 36px; }
+}

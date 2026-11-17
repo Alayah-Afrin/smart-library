@@ -1,0 +1,73 @@
+{# one book card: used by the results page and by the late "Also found online" section #}
+{% set is_free = book.read_url is string and book.read_url %}
+<article class="book-card">
+    <div class="cover-wrap">
+        {% if book.cover_url %}
+            <img src="{{ book.cover_url }}{% if 'openlibrary.org/b/isbn' in book.cover_url %}?default=false{% endif %}"
+                 alt="" loading="lazy"
+                 onload="if (this.naturalWidth < 20) this.onerror();"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="no-cover" style="display:none;"><span>{{ book.title }}</span></div>
+        {% else %}
+            <div class="no-cover"><span>{{ book.title }}</span></div>
+        {% endif %}
+        {% if is_free %}<span class="cover-badge">Free</span>{% endif %}
+    </div>
+
+    <div class="card-body">
+        <h3 title="{{ book.title }}">{{ book.title }}</h3>
+        <p class="author" title="{{ book.author or 'Unknown author' }}">{{ book.author or 'Unknown author' }}</p>
+        <div class="rating">
+        {% if book.avg_rating %}
+            <span class="stars" style="--r: {{ '%.2f' % book.avg_rating }}" aria-label="{{ '%.1f' % book.avg_rating }} out of 5"></span>
+            <span class="score">{{ '%.1f' % book.avg_rating }}</span>
+            <span class="count">({{ book.n_ratings|int }})</span>
+        {% elif book.community_n %}
+            <span class="stars" style="--r: {{ '%.2f' % book.community_avg }}" aria-label="{{ '%.1f' % book.community_avg }} out of 5"></span>
+            <span class="score">{{ '%.1f' % book.community_avg }}</span>
+            <span class="count">({{ book.community_n }} here)</span>
+        {% else %}
+            <span class="none">Not rated yet</span>
+        {% endif %}
+        </div>
+        {% if book.avg_rating and book.community_n %}
+        <p class="community-line" title="Ratings from Smart Library readers">Readers here: {{ '%.1f' % book.community_avg }}★ ({{ book.community_n }})</p>
+        {% endif %}
+        <p class="card-meta">
+            {% if book.reason %}<span class="reason">{{ book.reason }}</span>{% endif %}
+            {% if book.categories is string and book.categories %}<span class="cats" title="{{ book.categories }}">{{ book.categories|short_cats }}</span>{% endif %}
+        </p>
+    </div>
+
+    <div class="card-foot">
+        {% if book.reader_id %}
+        <a class="btn-primary" href="/read/{{ book.reader_id }}">Read here</a>
+        {% elif book.pdf_id is not none %}
+        <a class="btn-primary" href="/read/pdf/{{ book.pdf_id }}">Read here</a>
+        {% elif is_free %}
+        <a class="btn-primary" href="{{ book.read_url }}" target="_blank" rel="noopener" title="Opens the free copy on the publisher's site">Read free ↗</a>
+        {% else %}
+        <a class="btn-secondary" href="{% if book.ol_key %}https://openlibrary.org{{ book.ol_key }}{% elif book.isbn13 %}https://openlibrary.org/isbn/{{ book.isbn13 }}{% else %}https://openlibrary.org/search?q={{ book.title|urlencode }}{% endif %}" target="_blank" rel="noopener">Read or borrow ↗</a>
+        {% endif %}
+        <div class="card-secondary">
+            <button type="button" class="summary-btn"
+                data-title="{{ book.title }}"
+                data-author="{{ book.author if book.author is string else '' }}"
+                data-isbn="{% if book.isbn13 is string %}{{ book.isbn13 }}{% endif %}"
+                data-desc="{% if book.description is string %}{{ book.description|replace('*','') }}{% endif %}"
+                data-read="{% if book.read_url is string %}{{ book.read_url }}{% endif %}"
+                data-reader="{{ book.reader_id or '' }}"
+                data-pdf="{{ book.pdf_id if book.pdf_id is not none else '' }}"
+                data-key="{{ book.book_key }}" aria-label="Summary and reviews" title="Summary and reviews">Summary</button>
+            {% if book.book_key %}
+            <button type="button" class="save-btn icon-only" aria-pressed="false" aria-label="Save to my shelf" title="Save to my shelf"
+                data-key="{{ book.book_key }}" data-title="{{ book.title }}"
+                data-author="{{ book.author if book.author is string else '' }}"
+                data-cover="{{ book.cover_url if book.cover_url is string else '' }}"
+                data-read="{% if book.read_url is string %}{{ book.read_url }}{% endif %}"
+                data-reader="{{ book.reader_id or '' }}"
+                data-pdf="{{ book.pdf_id if book.pdf_id is not none else '' }}">♡</button>
+            {% endif %}
+        </div>
+    </div>
+</article>

@@ -7,7 +7,7 @@ import re
 import secrets
 import sys
 sys.path.append('src')
-from search import load_search_system, search_books, top_books, todays_pick, CATEGORY_GROUPS, USER_AGENT
+from search import load_search_system, search_books, top_books, todays_pick, online_extra, CATEGORY_GROUPS, USER_AGENT
 from descriptions import fetch_description, Fail
 import community
 import reader
@@ -199,6 +199,7 @@ def home():
     free_only = False
     mood_filter = category_filter = None
     did_you_mean = None
+    online_q = ''
     # Searches are normal links (/?q=harry&category=Fiction&free=1) so Back, refresh and sharing work.
     # POST with 'query' is still accepted for older links/forms.
     v = request.values
@@ -220,15 +221,20 @@ def home():
             mood_filter=mood_filter,
             category_filter=category_filter,
             top_k=24,
-            free_only=free_only
+            free_only=free_only,
+            online=False,                 # the page fetches "Also found online" afterwards (/online)
         )
+        words = query.lower().split()
+        if (query.strip() and len(words) <= 4 and not category_filter and not free_only and not mood_filter
+                and not set(words) & {'by', 'author', 'writer', 'written'}):
+            online_q = query.strip()
         results = decorate(results_df.fillna('').to_dict('records'))
         if suggestion and suggestion.startswith('Did you mean: '):
             did_you_mean, suggestion = suggestion[len('Did you mean: '):], None
         elif suggestion in KNOWN_NAMES and suggestion.lower() != query.strip().lower():
             did_you_mean, suggestion = suggestion, None
     return render_template('index.html', pick=pick, results=results, suggestion=suggestion,
-                           did_you_mean=did_you_mean, query=query,
+                           did_you_mean=did_you_mean, query=query, online_q=online_q,
                            category_groups=list(CATEGORY_GROUPS.keys()), selected_category=category_filter,
                            moods=MOODS, selected_mood=mood_filter, free_checked=free_only)
 
@@ -266,6 +272,16 @@ def describe():
         return jsonify(text='', error=True)
     DESC_CACHE[key] = text
     return jsonify(text=text)
+
+
+@app.route('/online')
+def online():
+    """Late "Also found online" section for the results page (HTML snippet, empty if nothing new)."""
+    q = request.args.get('q', '').strip()[:300]
+    df = online_extra(q, system) if q else None
+    if df is None or len(df) == 0:
+        return ''
+    return render_template('_online.html', books=decorate(df.fillna('').to_dict('records')))
 
 
 # ---------- in-site reader ----------

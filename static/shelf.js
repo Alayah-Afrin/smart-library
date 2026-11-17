@@ -62,9 +62,11 @@ const Shelf = (() => {
   return { all, has, toggle, remove, setProgress };
 })();
 
-// wire every "Save" button on the page
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.save-btn').forEach(btn => {
+// wire every "Save" button (also called again for cards that arrive later)
+Shelf.wire = (root) => {
+  root.querySelectorAll('.save-btn').forEach(btn => {
+    if (btn.dataset.wired) return;
+    btn.dataset.wired = '1';
     const d = btn.dataset;
     const icon = btn.classList.contains('icon-only');
     const paint = on => {
@@ -79,7 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
       key: d.key, title: d.title, author: d.author, cover: d.cover, read: d.read, reader: d.reader || '', pdf: d.pdf || ''
     })));
   });
-});
+};
+document.addEventListener('DOMContentLoaded', () => Shelf.wire(document));
 
 // Night / day mode button in the top menu (the choice is remembered in this browser)
 document.addEventListener('DOMContentLoaded', () => {

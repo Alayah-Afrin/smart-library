@@ -237,6 +237,57 @@ check('"hobb" suggests hobbit (popular), not hobbies', lambda: ('href="/?q=hobbi
 for path in ['/', '/?q=harry', '/top', '/shelf']:
     check(f'night-mode button + early theme script on {path}', lambda path=path: (lambda h: ('id="theme-btn"' in h and "sl_theme" in h, 'missing'))(c.get(path).get_data(as_text=True)))
 
+# ---- "Also found online" loads after the page (no waiting on Open Library) ----
+page = c.get('/?q=harry+potter').get_data(as_text=True)
+check('results page asks for online books afterwards', lambda: ('data-online-q="harry potter"' in page, 'no data-online-q'))
+check('no online lookup with a category filter', lambda: ('data-online-q' not in c.get('/?q=harry&category=Fiction').get_data(as_text=True), ''))
+S.live_lookup = lambda *a, **k: [{'title': 'A Brand New Novel 2025', 'author': 'New Writer', 'ol_key': '/works/OL777W', 'cover_url': None, 'source': 'live_lookup'},
+                                 {'title': "Harry Potter and the Sorcerer's Stone", 'author': 'J. K. Rowling', 'ol_key': '/works/OL1W', 'cover_url': None, 'source': 'live_lookup'}]
+A.online_extra.__globals__['live_lookup'] = S.live_lookup
+on = c.get('/online?q=new+novel').get_data(as_text=True)
+check('/online returns only books we do not have', lambda: ('A Brand New Novel 2025' in on and "Sorcerer" not in on and 'Also found online' in on, on[:120]))
+check('online cards can be rated (spam guard knows them)', lambda: ('ol:/works/OL777W' in A.SHOWN_ONLINE, ''))
+S.live_lookup = lambda *a, **k: []
+A.online_extra.__globals__['live_lookup'] = S.live_lookup
+check('/online with nothing new returns empty', lambda: (c.get('/online?q=zzz').get_data(as_text=True).strip() == '', ''))
+check('reader hides [Illustration] placeholders', lambda: ([p['text'] for p in reader.paragraphs('[Illustration]\n\nHello.\n\n[Illustration: a cat\nsitting]')] == ['Hello.'], ''))
+if A.PDF_BOOKS:
+    pdf_page = c.get('/?q=' + A.PDF_BOOKS[0]['title'].replace(' ', '+') + '&free=1').get_data(as_text=True)
+    check('Summary button carries the in-site PDF', lambda: ('data-pdf="0"' in pdf_page or 'data-pdf="' in pdf_page, ''))
+
+# ---- review-found fixes ----
+kx = A.system['work_dedup']['dedup_key'].iloc[5]
+community.save(kx, 'writer-1', 2, 'first version of my comment')
+rx = community.summary(kx)['comments'][0]['id']
+community.report(rx, 'reader-9', 'spoiler')
+community.save(kx, 'writer-1', 4, 'edited, better comment')
+check('editing a comment clears its old reports', lambda: (community.summary(kx)['comments'][0]['id'] == rx and community.report(rx, 'reader-9', 'spam') is True, ''))
+
+
+class Piecewise:
+    """fake streaming response that sends the file in tiny pieces"""
+    def __init__(self, body, code=200):
+        self.status_code, self.body = code, body
+    def __enter__(self): return self
+    def __exit__(self, *a): return False
+    def iter_content(self, n):
+        for i in range(0, len(self.body), 2):
+            yield self.body[i:i + 2]
+
+
+real_get = pdfs.requests.get
+pdfs.CACHE_DIR = tempfile.mkdtemp(prefix='sl-pdfcache-')
+pdfs.requests.get = lambda *a, **k: Piecewise(b'%PDF-1.4\n' + b'x' * 50)
+check('PDF sent in tiny pieces is accepted', lambda: (open(pdfs.ensure_pdf('https://x/a.pdf', 'ua'), 'rb').read(4) == b'%PDF', ''))
+pdfs.requests.get = lambda *a, **k: Piecewise(b'<html>login page</html>')
+def not_pdf():
+    try:
+        pdfs.ensure_pdf('https://x/b.pdf', 'ua'); return False, 'accepted a web page'
+    except pdfs.PdfError:
+        return True, ''
+check('web page pretending to be a PDF is rejected', not_pdf)
+pdfs.requests.get = real_get
+
 # ---- spam guard for online books ----
 check('rating a made-up online book is refused', lambda: (c.get('/api/community?key=ol:/works/OL99999999W').status_code == 400, ''))
 A.SHOWN_ONLINE['ol:/works/OL12345W'] = True

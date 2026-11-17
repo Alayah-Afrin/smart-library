@@ -109,6 +109,9 @@ def averages(book_keys):
 
 def save(book_key, anon_id, rating, comment, sentiment=None, sentiment_score=None):
     with _lock, _connect() as con:
+        # an edited comment starts fresh: old reports were about the old text
+        con.execute('DELETE FROM reports WHERE review_id IN (SELECT id FROM reviews WHERE book_key = ? AND anon_id = ?)',
+                    (book_key, anon_id))
         con.execute("""
             INSERT INTO reviews (book_key, anon_id, rating, comment, sentiment, sentiment_score) VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT (book_key, anon_id) DO UPDATE SET

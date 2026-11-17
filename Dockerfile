@@ -14,7 +14,7 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
  && chmod -R a+rwX /opt/hf-cache
 
 # 3. the app itself, run as a normal user (Hugging Face expects user id 1000)
-RUN useradd -m -u 1000 user
+RUN useradd -m -u 1000 user && mkdir -p /app && chown user:user /app
 WORKDIR /app
 COPY --chown=user . /app
 USER user

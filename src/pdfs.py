@@ -50,19 +50,21 @@ def ensure_pdf(url, user_agent):
         with requests.get(url, headers={'User-Agent': user_agent}, timeout=30, stream=True) as r:
             if r.status_code != 200:
                 raise PdfError(f'HTTP {r.status_code}')
-            size, first = 0, True
+            size, head, checked = 0, b'', False
             with open(tmp, 'wb') as f:
                 for chunk in r.iter_content(CHUNK):
-                    if first:
-                        if not chunk.lstrip()[:5].startswith(b'%PDF'):
-                            raise PdfError('not a PDF')       # e.g. a web page or a login screen
-                        first = False
+                    if not checked:
+                        head += chunk
+                        if len(head.lstrip()) >= 5 or len(head) >= 1024:
+                            if not head.lstrip().startswith(b'%PDF'):
+                                raise PdfError('not a PDF')   # e.g. a web page or a login screen
+                            checked = True
                     size += len(chunk)
                     if size > MAX_BYTES:
                         raise PdfError('too big')
                     f.write(chunk)
-            if first:
-                raise PdfError('empty')
+            if not checked and not head.lstrip().startswith(b'%PDF'):
+                raise PdfError('empty or not a PDF')
         os.replace(tmp, path)                                 # never leave a half file under the real name
         return path
     except requests.exceptions.RequestException as e:

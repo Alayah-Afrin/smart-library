@@ -107,8 +107,8 @@ def paragraphs(text):
     out = []
     for block in re.split(r'\n\s*\n', text):
         line = ' '.join(block.split())
-        if not line:
-            continue
+        if not line or re.fullmatch(r'\[Illustration[^\]]*\]', line, re.I):
+            continue                          # picture placeholder: the pictures aren't in the plain text
         out.append({'text': line, 'heading': bool(CHAPTER.match(line)) and len(line) < 70})
     return out
 
