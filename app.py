@@ -230,8 +230,10 @@ def home():
             online_q = query.strip()
         alternatives = results_df.attrs.get('alternatives') or []
         results = decorate(results_df.fillna('').to_dict('records'))
-        if alternatives:
+        if len(alternatives) >= 2:
             did_you_mean = alternatives               # several meanings: every one is a link
+        elif alternatives:
+            pass                                      # one meaning: the "Showing results for" line says it
         elif suggestion and suggestion.startswith('Did you mean: '):
             did_you_mean, suggestion = suggestion[len('Did you mean: '):], None
         elif suggestion in KNOWN_NAMES and suggestion.lower() != query.strip().lower():
