@@ -4,6 +4,7 @@ import os
 import re
 import unicodedata
 import bisect
+import math
 import heapq
 import faiss
 from rank_bm25 import BM25Okapi
@@ -61,9 +62,16 @@ def proc(s):
 
 def correct_query(query, vocab=None):
     """Spell-correct, but leave alone any word that really occurs in our catalog (e.g. 'moby')."""
-    words = query.split()
-    corrected = [w if (len(w) <= 2 or (vocab and fold(w) in vocab)) else (spell.correction(w) or w) for w in words]
-    return ' '.join(corrected)
+    def fix(w):
+        if len(w) <= 2 or (vocab and fold(w) in vocab):
+            return w
+        c = spell.correction(w)
+        # accept only a word our books actually contain, and only if it is close to what was typed:
+        # "calculas" -> calculus yes; "frodo" -> "fordo" no (no book has it); "zxcv" -> "zach" no (not close)
+        if c and (not vocab or fold(c) in vocab) and fuzz.ratio(fold(w), fold(c)) >= 80:
+            return c
+        return w
+    return ' '.join(fix(w) for w in query.split())
 
 
 CATEGORY_GROUPS = {
@@ -283,6 +291,17 @@ def load_search_system(data_dir):
     ranked_authors = (work_dedup.assign(_fame=work_dedup['author_norm'].map(author_fame))
                       .sort_values(['_fame', 'rating_count'], ascending=False))
     surname_best_author = ranked_authors.drop_duplicates('surname').set_index('surname')['author_norm'].to_dict()
+    # first names too: "stephen" -> Stephen King, Stephen Hawking ...; "agatha" -> Agatha Christie
+    ranked_authors['firstname'] = [fold(str(a).split()[0]) if str(a).split() else '' for a in ranked_authors['author_norm']]
+    one_per_author = ranked_authors.drop_duplicates('author_norm')
+    authors_by_name = {}                                        # name word -> best-known authors with it
+    for col in ('firstname', 'surname'):
+        for name, group in one_per_author.groupby(col, sort=False):
+            if len(name) >= 3 and name.isalpha() and name not in ('unknown', 'author', 'anonymous'):
+                authors_by_name.setdefault(name, []).extend(group['author_norm'].head(10).tolist())
+    authors_by_name = {k: sorted(dict.fromkeys(v), key=lambda a: -author_fame.get(a, 0))[:10]
+                       for k, v in authors_by_name.items()}
+    name_words = sorted(authors_by_name)
     author_display = ranked_authors.drop_duplicates('author_norm').set_index('author_norm')['author'].to_dict()
     author_norm_of = work_dedup.drop_duplicates('author').set_index('author')['author_norm'].to_dict()
 
@@ -299,6 +318,7 @@ def load_search_system(data_dir):
         'word_index': word_index, 'index_words': index_words,
         'author_fame': author_fame, 'surname_fame': surname_fame,
         'surname_best_author': surname_best_author, 'author_display': author_display,
+        'authors_by_name': authors_by_name, 'name_words': name_words,
         'author_norm_of': author_norm_of,
     }
 
@@ -405,7 +425,113 @@ def is_unfinished(sys, words_typed):
         return False
     whole = within(docs_with(sys, last))
     longer = within(np.unique(np.concatenate([docs_with(sys, w) for w in longer_words])))
+    if base is not None and whole == 0 and longer >= 1:
+        return True                                  # "hunger gam": no "gam" with "hunger", but "games" is
     return whole < 50 and longer >= 3 and longer >= 3 * whole
+
+
+def split_joined_words(sys, word):
+    """'lordoftherings' -> ['lord', 'of', 'the', 'rings'] using words our books contain (fewest, most common)."""
+    wdf, n = sys['word_df'], len(word)
+    best = [(0.0, [])] + [(float('inf'), None)] * n
+    for i in range(1, n + 1):
+        for j in range(max(0, i - 20), i):
+            piece, prev = word[j:i], best[j]
+            if prev[1] is None:
+                continue
+            count = wdf.get(piece, 0)
+            if count < 5 or (len(piece) == 1 and piece not in ('a', 'i')):
+                continue
+            cost = prev[0] + 10 - math.log(count)        # each extra word costs more: prefer few, common words
+            if cost < best[i][0]:
+                best[i] = (cost, prev[1] + [piece])
+    words = best[n][1]
+    return words if words and len(words) >= 2 else None
+
+
+def same_person(a, b):
+    """'j r r tolkien' and 'jrr tolkien' / 'john ronald reuel tolkien': same surname, same first initial."""
+    pa, pb = proc(a).split(), proc(b).split()
+    return bool(pa and pb) and pa[-1] == pb[-1] and pa[0][0] == pb[0][0]
+
+
+def other_authors(sys, names, main, limit=5):
+    """Well-known authors sharing a name with `main`, each real person once (no spelling duplicates)."""
+    chosen = []
+    for a in names:
+        if sys['author_fame'].get(a, 0) >= 20 and not same_person(a, main) and not any(same_person(a, c) for c in chosen):
+            chosen.append(a)
+        if len(chosen) == limit:
+            break
+    return chosen
+
+
+def pick_name(sys, word, allow_typo):
+    """One typed name -> the name it most likely means, looking at first names AND surnames.
+    Exact names are trusted unless a near spelling belongs to a far better-known author
+    ("stephan" -> stephen = Stephen King, "shakspeare" -> shakespeare). Typos are fixed only when allowed.
+    Returns {'name', 'score', 'exact'} or None."""
+    abn, fame = sys['authors_by_name'], sys['author_fame']
+    fame_of = lambda name: fame.get(abn[name][0], 0) if name in abn else 0
+    near = [(nm, sc) for nm, sc, _ in process.extract(word, sys['name_words'], scorer=fuzz.ratio,
+                                                      score_cutoff=85, limit=8) if nm != word]
+    if word in abn:
+        better = [(nm, sc) for nm, sc in near if fame_of(nm) >= 50 and fame_of(nm) >= 10 * max(fame_of(word), 1)]
+        if better:
+            nm, sc = max(better, key=lambda x: fame_of(x[0]))
+            return {'name': nm, 'score': sc, 'exact': False}
+        return {'name': word, 'score': 100, 'exact': True}
+    if allow_typo and near:
+        top = max(sc for _, sc in near)
+        nm, sc = max([x for x in near if x[1] >= top - 8], key=lambda x: fame_of(x[0]))   # near-tied spellings
+        return {'name': nm, 'score': sc, 'exact': False}
+    return None
+
+
+def titles_meaning(sys, original_query, reading):
+    """Books whose TITLE contains the typed words: the other meaning of a name-like query.
+    The last word may be unfinished ("harr" -> Harry...), and in a multi-word query one word may be
+    misspelled ("herry potter" -> Harry Potter)."""
+    wd = sys['work_dedup']
+    words = [w for w in re.findall(r'\w+', fold(original_query)) if w not in STOPWORDS and len(w) >= 2]
+    if not words:
+        return wd.iloc[0:0]
+    prefix = reading.get('title_prefix')
+
+    def ids_for(w):
+        return docs_starting_with(sys, w) if w == prefix else docs_with(sys, w)
+
+    def match(ws, typo_at=None):
+        cand = None
+        for i, w in enumerate(ws):
+            if i == typo_at:
+                continue
+            ids = ids_for(w)
+            cand = ids if cand is None else np.intersect1d(cand, ids, assume_unique=True)
+            if len(cand) == 0:
+                return wd.iloc[0:0]
+        if cand is None or len(cand) > 20000:
+            return wd.iloc[0:0]
+        col = wd['title_f'].iloc[cand]
+        ok = np.ones(len(cand), dtype=bool)
+        for i, w in enumerate(ws):
+            if i == typo_at:                       # this word only needs a CLOSE word in the title (herry ~ harry)
+                ok &= col.map(lambda t, w=w: any(fuzz.ratio(w, x) >= 80 for x in re.findall(r'\w+', t))).to_numpy()
+            else:
+                end = '' if w == prefix else r'(?!\w)'
+                ok &= col.str.contains(r'(?<!\w)' + re.escape(w) + end, regex=True).to_numpy()
+        return wd.iloc[cand[ok]]
+
+    found = match(words)
+    if len(found) == 0 and len(words) >= 2:
+        for i in range(len(words)):                # one misspelled word
+            found = match(words, typo_at=i)
+            if len(found):
+                title_words = re.findall(r'\w+', found.iloc[0]['title_f'])
+                fixed = max(title_words, key=lambda x: fuzz.ratio(words[i], x))      # "herry" -> "harry"
+                reading['title_from_typo'] = ' '.join(fixed if j == i else w for j, w in enumerate(words)).title()
+                break
+    return found
 
 
 def understand_query(original_query, sys):
@@ -431,7 +557,6 @@ def understand_query(original_query, sys):
     english = spell.word_usage_frequency(one) if one.isalpha() else 0
     everyday_word = n == 1 and english >= 1e-6             # "king", "love": a normal word, not a name
     looks_like_name = n <= 4 and len(q) >= 4 and not (set(q.lower().split()) & DESCRIPTION_WORDS)
-    fame_s = lambda name: sys['surname_fame'].get(name, 0)
 
     # 1. unfinished last word
     if is_unfinished(sys, words_typed):
@@ -443,53 +568,67 @@ def understand_query(original_query, sys):
             # suggest the word of the most-read books ("hobb" -> hobbit, not "hobbies")
             pop = sys['work_dedup']['rating_count'].to_numpy()
             out['did_you_mean'] = max(longer, key=lambda w: (pop[docs_with(sys, w)].sum(), len(docs_with(sys, w)))) if longer else None
+            out['title_prefix'] = last           # its title meaning: words starting with "harr" (Harry Potter)
         else:
             return {**out, 'kind': 'prefix', 'partial_word': last}
 
-    # 2. one rare word = probably a surname ("rowling", "roling", "kingg", "shakspeare")
-    if n == 1 and len(one) >= 5 and one.isalpha() and english < 1e-7:
-        cands = process.extract(one, sys['surname_list'], scorer=fuzz.ratio, score_cutoff=85, limit=5)
-        pick = None
-        if cands:
-            best = max(c[1] for c in cands)
-            if best == 100:
-                pick = next(c for c in cands if c[1] == 100)        # typed exactly: trust it...
-                # ...unless it's a rare misspelling in the data and a near spelling is far better known
-                better = [c for c in cands if c[1] >= 88 and c[0] != pick[0]
-                          and fame_s(c[0]) >= 50 and fame_s(c[0]) >= 10 * max(fame_s(pick[0]), 1)]
-                if better:
-                    pick = max(better, key=lambda c: fame_s(c[0]))
-            else:
-                near = [c for c in cands if c[1] >= best - 8]                  # near-tied spellings
-                pick = max(near, key=lambda c: fame_s(c[0]))
-        if pick and (pick[1] == 100 or pick[1] >= title_score - 2):
-            norm = sys['surname_best_author'][pick[0]]
-            corrected = pick[1] < 100
+    # 2. one word that is a person's name: a first name OR a surname, typed right or with a typo
+    #    ("rowling", "stephen" -> Stephen King, "agatha" -> Agatha Christie, "stephan"/"roling" -> did you mean)
+    #    Everyday words ("king", "love") and exact book titles show titles + authors instead (step 5).
+    if n == 1 and len(one) >= 3 and one.isalpha() and not everyday_word and title_score < 100:
+        pick = pick_name(sys, one, allow_typo=len(one) >= 5 and english < 1e-7)
+        if pick and (pick['exact'] or pick['score'] >= title_score - 2):
+            authors = sys['authors_by_name'][pick['name']]
+            norm = authors[0]
+            corrected = not pick['exact']
             return {**out, 'kind': 'author', 'author_norm': norm, 'author_name': sys['author_display'][norm],
-                    'corrected': corrected, 'said': pick[0],
-                    'also_title': title_best if corrected and title_score >= 85 else None}
+                    'corrected': corrected, 'said': pick['name'],
+                    'also_title': title_best if corrected and title_score >= 90 else None,   # only a very close title
+                    'also_authors': other_authors(sys, authors[1:], norm)}
 
     # 3. a full author name ("stephen king", "jk roling") or one not-everyday word that is an author
     if looks_like_name and not everyday_word:
         matches = process.extract(proc(q), sys['author_proc'], scorer=fuzz.token_sort_ratio, limit=8)
         strong = [(sys['author_list'][i], s) for _, s, i in matches if s >= 85]
-        if strong and strong[0][1] >= title_score:
-            top = strong[0][1]
-            tied = [a for a, s in strong if s >= top - 5]          # equally good spellings of the name
-            if n >= 2:                                             # names that contain every typed word:
-                full = process.extract(proc(q), sys['author_proc'], scorer=fuzz.token_set_ratio,
-                                       score_cutoff=100, limit=8)  # "garcia marquez" -> Gabriel Garcia Marquez
-                tied += [sys['author_list'][i] for _, _, i in full]
+        # names that contain every typed word ("garcia marquez" -> Gabriel Garcia Marquez,
+        # "ronald tolkien" -> John Ronald Reuel Tolkien), when the typed last word is a known surname
+        full = []
+        typed_last = proc(q).split()[-1] if proc(q).split() else ''
+        if n >= 2 and typed_last in sys['authors_by_name'] and title_score < 85:   # not "harry potter", "artificial intelligence"
+            full = [sys['author_list'][i] for _, _, i in process.extract(
+                proc(q), sys['author_proc'], scorer=fuzz.token_set_ratio, score_cutoff=100, limit=8)]
+        if (strong and strong[0][1] >= title_score) or full:
+            top = strong[0][1] if strong else 100
+            tied = [a for a, s in strong if s >= top - 5] + full    # equally good spellings of the name
             norm = max((sys['author_norm_of'][a] for a in tied), key=lambda x: sys['author_fame'].get(x, 0))
-            if n == 1 and one in sys['surname_best_author']:      # a surname: its best-known author ("twain")
-                norm = sys['surname_best_author'][one]
+            if n == 1 and one in sys['authors_by_name']:     # a name: its best-known author ("tolkien", "twain")
+                norm = sys['authors_by_name'][one][0]
+            last_typed = proc(q).split()[-1] if proc(q).split() else ''
+            if n >= 2 and last_typed in sys['authors_by_name']:
+                famous = sys['authors_by_name'][last_typed][0]   # best-known author with the typed surname
+                fame = sys['author_fame']
+                if same_person(famous, norm) or (proc(norm).split()[-1] != last_typed
+                                                 and fame.get(famous, 0) >= 10 * max(fame.get(norm, 0), 1)):
+                    # "ronald tolkien" -> J.R.R. Tolkien (same person); "kathleen rowling" -> J.K. Rowling,
+                    # not Kathleen Laing (an exact famous surname beats a first-name-only match)
+                    norm = famous
+            also = []
+            if n == 1 and one in sys['authors_by_name']:     # "arthur": the other well-known Arthurs too
+                also = other_authors(sys, sys['authors_by_name'][one][1:], norm)
             return {**out, 'kind': 'author', 'author_norm': norm, 'author_name': sys['author_display'][norm],
-                    'corrected': False, 'said': one, 'also_title': None}
+                    'corrected': False, 'said': one or q, 'also_title': None, 'also_authors': also}
 
     # 4. a misspelled title: only when a word looks like a typo, so real words stay as typed
     #    ("introduction to physics" must not become "...Metaphysics")
     if 85 <= title_score < 100 and n <= 4 and (has_unknown_word or (has_rare_word and title_score >= 90)):
         return {**out, 'kind': 'title_fix', 'query': title_best}
+
+    # 4b. words typed without spaces ("lordoftherings"): only when no title is close
+    #     (a misspelling like "frankenstine" was already fixed by step 4, not split into "frank en stine")
+    if n == 1 and len(one) >= 7 and one.isalpha() and one not in sys['vocab']:
+        parts = split_joined_words(sys, one)
+        if parts:
+            return {**out, 'query': ' '.join(parts)}
 
     # 5. the words as typed, with never-seen words spell-checked
     return {**out, 'query': correct_query(q, sys['vocab'])}
@@ -534,29 +673,58 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
     original_query = query
     reading = understand_query(original_query, sys)
 
-    if reading['kind'] == 'author':                     # a person: show their books
+    if reading['kind'] == 'author':
+        # A person. But the same words may ALSO be book titles ("sherlock", "potter", "harr", "herry potter"):
+        # show both meanings, the more-read one first.
         wd, order = sys['work_dedup'], ['n_ratings', 'rating_count']
         norm, name = reading['author_norm'], reading['author_name']
+        said = (reading['said'] or '').title()
         by_author = (keep(wd[wd['author_norm'] == norm]).sort_values(order, ascending=False)
                      .drop_duplicates('dedup_key').head(top_k).copy())
-        title_text = reading['also_title'] or ''
-        by_title = wd.iloc[0:0]
-        if title_text:                                   # a book title is also a close match
-            by_title = (keep(wd[wd['title_f'].str.contains(r'^(?:the\s+)?' + re.escape(fold(title_text)) + r'(?!\w)', regex=True)])
-                        .sort_values(order, ascending=False).drop_duplicates('dedup_key').head(6).copy())
-        if len(by_author) == 0 and len(by_title) == 0 and filters_on:
+        titles = keep(titles_meaning(sys, original_query, reading))
+        titles = titles[~titles['dedup_key'].isin(set(by_author['dedup_key']))]
+        titles = titles.sort_values(order, ascending=False).drop_duplicates('dedup_key')
+        others = []
+        for other in reading.get('also_authors') or []:          # "stephen": Stephen Hawking, Stephen Covey...
+            best = keep(wd[wd['author_norm'] == other]).sort_values(order, ascending=False).drop_duplicates('dedup_key').head(2)
+            if len(best):
+                others.append(best)
+        if len(by_author) == 0 and len(titles) == 0 and not others and filters_on:
             return author_empty(name)
-        said = (reading['said'] or '').title()
-        if len(by_title) == 0:
-            return by_author, (f"Did you mean {said}? Showing results for author: {name}" if reading['corrected']
-                               else f"Showing results for author: {name}")
-        by_author = by_author.head(12).copy()
-        by_author['section'] = f"Books by {name}"
-        by_title['section'] = f"Books titled “{title_text}”"
-        parts = [by_author, by_title]
-        if by_title['rating_count'].sum() > by_author['rating_count'].sum():
-            parts = [by_title, by_author]               # more popular side goes first
-        return pd.concat(parts), f"Did you mean {said}? Showing books by {name} and the book “{title_text}”."
+
+        who = (f"Did you mean {said}? Showing results for author: {name}" if reading['corrected']
+               else f"Showing results for author: {name}")
+        if reading.get('did_you_mean'):                  # "harr": the longer word is offered as a link
+            who = f"Did you mean: {reading['did_you_mean']}"
+        if len(titles) == 0 and not others:
+            return by_author, who
+
+        shown = ' '.join(re.findall(r"[\w'-]+", original_query.strip())) or original_query.strip()
+        a_part = by_author.head(16 if len(titles) else top_k).copy()
+        a_part['section'] = f"Books by {name}"
+        parts = [a_part]
+        if others:
+            more = pd.concat(others).copy()
+            more['section'] = f"Other authors named {said}"
+            parts.append(more)
+        pop_a = by_author.head(10)['rating_count'].sum()
+        pop_t = titles.head(10)['rating_count'].sum() if len(titles) else 0
+        if len(titles) and pop_t < 0.2 * pop_a and len(by_author) >= 8:
+            titles = titles.iloc[0:0]           # "rowling": books ABOUT her are not a second meaning worth showing
+        if len(titles) == 0 and not others:
+            return by_author, who
+        if len(titles):
+            t_part = titles.head(16).copy()
+            t_part['section'] = (f"Titles with “{shown}”" if not reading.get('title_from_typo')
+                                 else f"Books titled “{reading['title_from_typo']}”")
+            if t_part.head(10)['rating_count'].sum() > a_part.head(10)['rating_count'].sum():
+                # the title meaning is read far more ("potter" -> Harry Potter): it goes first
+                banner = f"Also showing books by {name} below."
+                if reading.get('did_you_mean'):
+                    banner = who
+                return pd.concat([t_part] + parts), banner
+            parts.append(t_part.head(8))
+        return pd.concat(parts), who
 
     query = reading['query']
     partial_word = reading['partial_word']
@@ -731,6 +899,13 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
     if sectioned:
         t_all = ranked[ranked['section'] == TITLE_LABEL].sort_values(['n_ratings', 'rating_count'], ascending=False)
         a_all = ranked[ranked['section'] == AUTHOR_LABEL].sort_values(['n_ratings', 'rating_count'], ascending=False)
+        # Several comparably popular people with the name ("arthur": Clarke, Conan Doyle, Miller) -> at most
+        # 3 books each so all of them show. One clearly dominant person ("jk" -> J.K. Rowling) is not capped.
+        person = a_all['author_norm'].map(lambda a: (proc(a).split() or ['?'])[-1] + (proc(a) or '?')[0])
+        reads = a_all.groupby(person)['n_ratings'].sum().sort_values(ascending=False)
+        dominant = len(reads) >= 2 and reads.iloc[0] >= 10 * max(reads.iloc[1], 1)
+        if len(reads) >= 3 and not dominant:
+            a_all = a_all[person.groupby(person).cumcount() < 3]
         # the reading of the query that readers rated more goes first ("tolkien" -> the author, "harry" -> the titles)
         author_first = (len(a_all) > 0 and len(t_all) > 0 and
                         a_all['n_ratings'].head(3).fillna(0).sum() > t_all['n_ratings'].head(3).fillna(0).sum())
@@ -922,8 +1097,24 @@ SHORT_FORMS = {
 }
 
 
+def isbn_search(isbn, sys):
+    """A typed ISBN (10 or 13 digits) -> that book, whichever edition the number belongs to."""
+    isbn13 = to_isbn13(isbn.upper()) or isbn
+    wd, books = sys['work_dedup'], sys['books']
+    keys = set(books.loc[books['isbn13'] == isbn13, 'dedup_key'])
+    found = wd[wd['dedup_key'].isin(keys) | (wd['isbn13'] == isbn13)].drop_duplicates('dedup_key')
+    if len(found):
+        return found.head(24), f"Book with ISBN {isbn}"
+    return found, f"No book with ISBN {isbn} in our library."
+
+
 def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False, online=True):
-    """Public entry point: expand short forms, run the search, then attach the 'why' chips."""
+    """Public entry point: tidy the query, expand short forms, run the search, then attach the 'why' chips."""
+    query = re.sub(r'(?<=[^\W\d_])[-_/]+(?=[^\W\d_])', ' ', query or '')   # "harry-potter" -> "harry potter"
+    digits = re.sub(r'[\s-]', '', query)
+    if re.fullmatch(r'\d{9}[\dXx]|\d{13}', digits):                          # an ISBN
+        df, banner = isbn_search(digits, sys)
+        return add_why(df, query, banner, category_filter), banner
     short = fold(query or '').strip().strip('.')
     expanded = SHORT_FORMS.get(short)
     q = expanded or query

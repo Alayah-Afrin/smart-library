@@ -644,3 +644,8 @@ html[data-theme="dark"] .reader-tools { background: var(--paper); }
   .save-btn.icon-only { width: 44px; }
   .report-reason, .report-btn { min-height: 36px; }
 }
+
+.pdf-preparing { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; }
+.pdf-preparing[hidden], .pdf-frame[hidden] { display: none; }
+.pdf-preparing p + p { margin-top: 10px; }
+.pdf-progress { max-width: 420px; margin: 14px auto 0; height: 8px; }

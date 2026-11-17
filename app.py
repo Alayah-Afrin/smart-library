@@ -324,13 +324,22 @@ def pdf_file(pid):
     if not 0 <= pid < len(PDF_BOOKS):
         abort(404)
     b = PDF_BOOKS[pid]
-    try:
-        path = pdfs.ensure_pdf(b['pdf_url'], USER_AGENT)
-    except pdfs.PdfError:
+    st = pdfs.status(b['pdf_url'], USER_AGENT)               # starts the background download if needed
+    if st['state'] == 'error':
         return render_template('pdf_unavailable.html', title=b['title'], pdf_url=b['pdf_url'],
                                source=b['read_url']), 502
-    return send_file(os.path.abspath(path), mimetype='application/pdf', conditional=True,
-                     download_name=f"{b['title'][:80]}.pdf".replace('/', '-'))
+    if st['state'] != 'ready':
+        return render_template('pdf_unavailable.html', title=b['title'], pdf_url=b['pdf_url'],
+                               source=b['read_url'], preparing=st), 202
+    return send_file(os.path.abspath(pdfs.cached_path(b['pdf_url'])), mimetype='application/pdf',
+                     conditional=True, download_name=f"{b['title'][:80]}.pdf".replace('/', '-'))
+
+
+@app.route('/pdf/<int:pid>/status')
+def pdf_status(pid):
+    if not 0 <= pid < len(PDF_BOOKS):
+        abort(404)
+    return jsonify(pdfs.status(PDF_BOOKS[pid]['pdf_url'], USER_AGENT))
 
 
 # ---------- community ratings + comments ----------

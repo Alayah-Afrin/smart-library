@@ -22,14 +22,38 @@
         <a class="tool-btn" href="{{ source }}" target="_blank" rel="noopener">About this book ↗</a>
     </div>
 
-    <iframe class="pdf-frame" id="pdf-frame" src="/pdf/{{ pid }}" title="{{ title }}"></iframe>
+    <div class="pdf-preparing" id="pdf-preparing" role="status">
+        <p id="pdf-prep-text">Preparing your book…</p>
+        <div class="progress-bar pdf-progress" aria-hidden="true"><span id="pdf-prep-bar" style="width: 3%"></span></div>
+        <p class="muted">The publisher's server sends it to us first; big or slow ones can take a few minutes. It opens by itself when ready, and is instant next time.</p>
+    </div>
+    <iframe class="pdf-frame" id="pdf-frame" title="{{ title }}" hidden></iframe>
     <p class="reader-credit">Openly licensed textbook from the <a href="{{ source }}" target="_blank" rel="noopener">Open Textbook Library</a>.</p>
 </main>
 <script src="{{ url_for('static', filename='shelf.js') }}"></script>
 <script>
-  document.getElementById('pdf-frame').addEventListener('load', () => {
-    document.getElementById('pdf-status').textContent = 'Use the controls inside the book to zoom, search and turn pages.';
-  });
+  (() => {
+    const frame = document.getElementById('pdf-frame'), prep = document.getElementById('pdf-preparing');
+    const text = document.getElementById('pdf-prep-text'), bar = document.getElementById('pdf-prep-bar');
+    const open = () => { prep.hidden = true; frame.hidden = false; frame.src = '/pdf/{{ pid }}'; };
+    frame.addEventListener('load', () => {
+      document.getElementById('pdf-status').textContent = 'Use the controls inside the book to zoom, search and turn pages.';
+    });
+    async function check() {
+      let st;
+      try { st = await (await fetch('/pdf/{{ pid }}/status')).json(); } catch (e) { setTimeout(check, 4000); return; }
+      if (st.state === 'ready') return open();
+      if (st.state === 'error') return open();            // the frame then shows the "couldn't be opened" message
+      if (st.percent != null) {
+        text.textContent = `Preparing your book… ${st.percent}% (${st.done_mb} of ${st.total_mb} MB)`;
+        bar.style.width = Math.max(3, st.percent) + '%';
+      } else if (st.done_mb) {
+        text.textContent = `Preparing your book… ${st.done_mb} MB so far`;
+      }
+      setTimeout(check, 2000);
+    }
+    check();
+  })();
 </script>
 </body>
 </html>

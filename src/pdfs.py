@@ -39,8 +39,9 @@ def cached_path(url):
     return os.path.join(CACHE_DIR, hashlib.sha1(url.encode('utf-8')).hexdigest()[:20] + '.pdf')
 
 
-def ensure_pdf(url, user_agent):
-    """Download the PDF once (checked + size-capped), return the local file path."""
+def ensure_pdf(url, user_agent, progress=None):
+    """Download the PDF once (checked + size-capped), return the local file path.
+    progress(done_bytes, total_bytes) is called while downloading (total may be 0 if unknown)."""
     path = cached_path(url)
     if os.path.exists(path):
         return path
@@ -50,6 +51,7 @@ def ensure_pdf(url, user_agent):
         with requests.get(url, headers={'User-Agent': user_agent}, timeout=30, stream=True) as r:
             if r.status_code != 200:
                 raise PdfError(f'HTTP {r.status_code}')
+            total = int(r.headers.get('content-length') or 0)
             size, head, checked = 0, b'', False
             with open(tmp, 'wb') as f:
                 for chunk in r.iter_content(CHUNK):
@@ -63,6 +65,8 @@ def ensure_pdf(url, user_agent):
                     if size > MAX_BYTES:
                         raise PdfError('too big')
                     f.write(chunk)
+                    if progress:
+                        progress(size, total)
             if not checked and not head.lstrip().startswith(b'%PDF'):
                 raise PdfError('empty or not a PDF')
         os.replace(tmp, path)                                 # never leave a half file under the real name
@@ -72,3 +76,34 @@ def ensure_pdf(url, user_agent):
     finally:
         if os.path.exists(tmp):
             os.remove(tmp)
+
+
+# ---- background downloads, so a slow publisher never makes the reader page give up ----
+_jobs = {}                     # url -> {'state': 'downloading'|'ready'|'error', 'done', 'total', 'since'}
+_jobs_lock = threading.Lock()
+RETRY_AFTER = 60               # seconds before a failed download may be tried again
+
+
+def status(url, user_agent):
+    """Start the download if needed and report where it is: {'state', 'percent', 'done_mb', 'total_mb'}."""
+    import time
+    if os.path.exists(cached_path(url)):
+        return {'state': 'ready', 'percent': 100, 'done_mb': None, 'total_mb': None}
+    with _jobs_lock:
+        job = _jobs.get(url)
+        if job is None or (job['state'] == 'error' and time.time() - job['since'] > RETRY_AFTER):
+            job = {'state': 'downloading', 'done': 0, 'total': 0, 'since': time.time()}
+            _jobs[url] = job
+
+            def run():
+                def progress(done, total):
+                    job['done'], job['total'] = done, total
+                try:
+                    ensure_pdf(url, user_agent, progress)
+                    job['state'] = 'ready'
+                except Exception:
+                    job['state'], job['since'] = 'error', time.time()
+            threading.Thread(target=run, daemon=True).start()
+    percent = int(job['done'] * 100 / job['total']) if job['total'] else None
+    return {'state': job['state'], 'percent': percent,
+            'done_mb': round(job['done'] / 1e6, 1), 'total_mb': round(job['total'] / 1e6, 1) if job['total'] else None}

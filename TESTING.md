@@ -15,6 +15,7 @@ Each prints `PASS` / `FAIL` lines and a total at the end.
 |---|---|---|
 | `python tests/check_search.py` | 19 core searches (names, typos, titles, categories) | `19/19 checks passed` |
 | `python tests/test_features.py` | Every feature: filters, reader, PDFs, shelf, reviews, sentiment, admin, spam guard, "harr", short forms… | all checks passed, no `FAIL` lines |
+| `python tests/scenarios.py` | 94 searches covering every kind of thing people type (titles, typos, first names, two meanings, ISBN, joined words, nonsense…) | `94/94 searches gave a good answer` |
 | `python tests/evaluate.py` | Search quality on 44 test questions (score 0 to 1) | **Hybrid** line about **0.94** |
 | `python tests/filter_matrix.py` | 560 combinations: 40 searches × every category × Free on/off | `crashes: 0`, `category ignored: 0`, `free filter ignored: 0`, `confusing` ≤ 1 |
 

@@ -215,17 +215,45 @@ check('"harry pot" (not a name) still finds Harry Potter', lambda: (lambda d, b:
 import pdfs
 if A.PDF_BOOKS:
     pid = 0
-    real_ensure = pdfs.ensure_pdf
+    real_status, real_cached = pdfs.status, pdfs.cached_path
     fake = os.path.join(tempfile.mkdtemp(prefix='sl-pdf-'), 'fake.pdf')
     open(fake, 'wb').write(b'%PDF-1.4\n%fake test pdf\n')
-    pdfs.ensure_pdf = lambda url, ua: fake
-    check('/read/pdf/0 page renders with the book inside', lambda: (lambda r: (r.status_code == 200 and b'/pdf/0' in r.data and b'pdf-frame' in r.data, r.status_code))(c.get('/read/pdf/0')))
+    check('/read/pdf/0 page renders with the book inside', lambda: (lambda r: (r.status_code == 200 and b'/pdf/0' in r.data and b'pdf-frame' in r.data and b'Preparing your book' in r.data, r.status_code))(c.get('/read/pdf/0')))
+    # book already downloaded -> served at once
+    pdfs.cached_path = lambda url: fake
     check('/pdf/0 serves a PDF', lambda: (lambda r: (r.status_code == 200 and r.mimetype == 'application/pdf' and r.data.startswith(b'%PDF'), (r.status_code, r.mimetype)))(c.get('/pdf/0')))
-    def down(url, ua):
-        raise pdfs.PdfError('down')
-    pdfs.ensure_pdf = down
+    check('status says ready when downloaded', lambda: (c.get('/pdf/0/status').get_json()['state'] == 'ready', ''))
+    pdfs.cached_path = real_cached
+    # still downloading -> a "being prepared" page, never a timeout
+    pdfs.status = lambda url, ua: {'state': 'downloading', 'percent': 35, 'done_mb': 7.6, 'total_mb': 22.0}
+    check('slow publisher -> "being prepared" page (no error)', lambda: (lambda r: (r.status_code == 202 and b'being prepared' in r.data and b'35%' in r.data, r.status_code))(c.get('/pdf/0')))
+    check('status reports the progress', lambda: (c.get('/pdf/0/status').get_json()['percent'] == 35, ''))
+    # publisher really failing -> friendly message
+    pdfs.status = lambda url, ua: {'state': 'error', 'percent': None, 'done_mb': 0, 'total_mb': None}
     check('publisher down -> friendly page, not a crash', lambda: (lambda r: (r.status_code == 502 and b"couldn't be opened here" in r.data, r.status_code))(c.get('/pdf/0')))
-    pdfs.ensure_pdf = real_ensure
+    pdfs.status = real_status
+
+    # real background download (fake slow server): goes downloading -> ready, with progress
+    import time as _t
+    pdfs.CACHE_DIR = tempfile.mkdtemp(prefix='sl-bg-')
+    real_get_bg = pdfs.requests.get
+    class Slow:
+        status_code, headers = 200, {'content-length': str(9 + 40 * 1000)}
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def iter_content(self, n):
+            yield b'%PDF-1.4\n'
+            for _ in range(40):
+                _t.sleep(0.02); yield b'x' * 1000
+    pdfs.requests.get = lambda *a, **k: Slow()
+    first = pdfs.status('https://slow.example/book.pdf', 'ua')
+    for _ in range(100):
+        if pdfs.status('https://slow.example/book.pdf', 'ua')['state'] != 'downloading':
+            break
+        _t.sleep(0.05)
+    last = pdfs.status('https://slow.example/book.pdf', 'ua')
+    check('background download: downloading -> ready', lambda: (first['state'] == 'downloading' and last['state'] == 'ready', (first, last)))
+    pdfs.requests.get = real_get_bg
     check('PDF outside our list -> 404 (no open proxy)', lambda: (c.get(f'/read/pdf/{len(A.PDF_BOOKS)}').status_code == 404 and c.get('/pdf/99999').status_code == 404, ''))
     check('cache file name follows the address, not the list position', lambda: (pdfs.cached_path('https://a/x.pdf') == pdfs.cached_path('https://a/x.pdf') != pdfs.cached_path('https://a/y.pdf'), ''))
     rec = A.decorate([{'read_url': A.PDF_BOOKS[0]['read_url'], 'title': 't', 'why': ''}])[0]
@@ -267,7 +295,7 @@ check('editing a comment clears its old reports', lambda: (community.summary(kx)
 class Piecewise:
     """fake streaming response that sends the file in tiny pieces"""
     def __init__(self, body, code=200):
-        self.status_code, self.body = code, body
+        self.status_code, self.body, self.headers = code, body, {}
     def __enter__(self): return self
     def __exit__(self, *a): return False
     def iter_content(self, n):
