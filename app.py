@@ -228,8 +228,11 @@ def home():
         if (query.strip() and len(words) <= 4 and not category_filter and not free_only and not mood_filter
                 and not set(words) & {'by', 'author', 'writer', 'written'}):
             online_q = query.strip()
+        alternatives = results_df.attrs.get('alternatives') or []
         results = decorate(results_df.fillna('').to_dict('records'))
-        if suggestion and suggestion.startswith('Did you mean: '):
+        if alternatives:
+            did_you_mean = alternatives               # several meanings: every one is a link
+        elif suggestion and suggestion.startswith('Did you mean: '):
             did_you_mean, suggestion = suggestion[len('Did you mean: '):], None
         elif suggestion in KNOWN_NAMES and suggestion.lower() != query.strip().lower():
             did_you_mean, suggestion = suggestion, None

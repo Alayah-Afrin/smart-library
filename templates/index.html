@@ -82,7 +82,10 @@
     {% if did_you_mean %}
         <div class="suggestion">
             Did you mean
-            <a class="dym-link" href="{{ url_for('home', q=did_you_mean, category=selected_category or None, free='1' if free_checked else None) }}">{{ did_you_mean }}</a>?
+            {% for alt in (did_you_mean if did_you_mean is not string else [did_you_mean]) %}
+                {%- if not loop.first %} · {% endif -%}
+                <a class="dym-link" href="{{ url_for('home', q=alt, category=selected_category or None, free='1' if free_checked else None) }}">{{ alt }}</a>
+            {%- endfor %}?
         </div>
     {% endif %}
 

@@ -6,6 +6,7 @@ import unicodedata
 import bisect
 import math
 import heapq
+import itertools
 import faiss
 from rank_bm25 import BM25Okapi
 from rapidfuzz import fuzz, process, utils
@@ -606,6 +607,110 @@ def fix_typos(sys, query):
         else:
             out.append(tok)
     return ' '.join(out) if changed else query
+
+
+def _max_edits(word):
+    return 1 if len(word) <= 5 else 2 if len(word) <= 6 else 3     # "twilite" -> twilight is 3
+
+
+def spelling_alternatives(sys, query, keep=3, margin=15):
+    """Every likely meaning of a query that contains misspelled words, most likely first.
+
+    A misspelled word is often close to SEVERAL real words: "poter" -> potter AND peter,
+    "sherlok" -> sherlock, "harr poter" -> harry potter. Instead of picking one fix per word,
+    this lists every catalog word 1-3 letters away from each misspelled word, then scores each
+    whole combination by how close it is (fewer wrong letters) and how much the books that
+    contain ALL the words are read. Returns a list of query strings (best first), or [] when
+    nothing in the query looks misspelled. The original word stays in the list when the catalog
+    really has it (e.g. "harr" = Jonathan Harr), so both meanings can be shown.
+    """
+    tokens = query.split()
+    if not 1 <= len(tokens) <= 5:
+        return []
+    pop = sys['work_dedup']['rating_count'].fillna(0).to_numpy()
+
+    def pop_of(ids):
+        """How much the 10 most-read books with these words are read. Not the total: "peter" is in
+        2,800 books, "potter" in 366, but Harry Potter is read far more than any Peter book."""
+        if not len(ids):
+            return 0.0
+        p = pop[ids]
+        return float(np.partition(p, len(p) - 10)[-10:].sum()) if len(p) > 10 else float(p.sum())
+
+    slots = []             # per token: list of (word, edits)
+    known_ids = []         # books for the correctly spelled, meaningful words
+    any_typo = False
+    for tok in tokens:
+        b = fold(tok).strip('.,!?;:"()')
+        plain = b.isalpha() and len(b) >= 4 and b not in STOPWORDS
+        if not plain:
+            slots.append([(tok, 0)])
+            if b.isalpha() and b not in STOPWORDS and len(b) >= 3 and len(docs_with(sys, b)):
+                known_ids.append(docs_with(sys, b))
+            continue
+        own_ids = docs_with(sys, b)
+        cands = []
+        for cand, _, _ in process.extract(b, sys['fix_words'], scorer=fuzz.ratio, score_cutoff=70, limit=60):
+            if cand == b or cand[0] != b[0] or cand in STOPWORDS:
+                continue
+            edits = DamerauLevenshtein.distance(b, cand)
+            if edits <= _max_edits(b):
+                cands.append((cand, edits))
+        unknown = b not in sys['vocab'] and not spell.known([b])
+        # a rare word our books do contain is still treated as a likely typo when a close word is read
+        # FAR more ("harr" -> harry, "tolkin" -> tolkien); the word as typed stays as another meaning
+        own_pop = pop_of(own_ids)
+        much_better = [c for c in cands if pop_of(docs_with(sys, c[0])) >= 10 * max(own_pop, 1)
+                       and pop_of(docs_with(sys, c[0])) >= 200]
+        if (unknown and cands) or (len(own_ids) < 20 and not spell.known([b]) and much_better):
+            any_typo = True
+            ranked = sorted(cands, key=lambda c: -25 * c[1] + 10 * math.log10(1 + pop_of(docs_with(sys, c[0]))),
+                            reverse=True)[:4]
+            best_pop = max((pop_of(docs_with(sys, c[0])) for c in ranked), default=0)
+            if len(own_ids) and own_pop >= 0.03 * best_pop:
+                ranked.append((b, 1))              # as typed: a real but much less-read meaning ("harr")
+            slots.append(ranked)
+        else:
+            slots.append([(tok, 0)])
+            if len(own_ids) and b not in STOPWORDS:
+                known_ids.append(own_ids)
+    if not any_typo:
+        return []
+
+    base = None
+    for ids in known_ids:
+        base = ids if base is None else np.intersect1d(base, ids, assume_unique=True)
+    scored = []
+    for combo in itertools.islice(itertools.product(*slots), 200):
+        ids = base
+        edits = 0
+        for word, e in combo:
+            edits += e
+            w = fold(word).strip('.,!?;:"()')
+            if w.isalpha() and w not in STOPWORDS and len(w) >= 3:
+                d = docs_with(sys, w)
+                ids = d if ids is None else np.intersect1d(ids, d, assume_unique=True)
+        together = pop_of(ids) if ids is not None else 0.0
+        if ids is not None and len(ids) == 0:
+            continue                              # these words never appear together in any book
+        score = -25 * edits + 10 * math.log10(1 + together)
+        scored.append((score, ' '.join(w for w, _ in combo)))
+    if not scored:
+        return []
+    scored.sort(reverse=True)
+    best = scored[0][0]
+    out = []
+    for score, q in scored:
+        if score >= best - margin and q not in out:
+            out.append(q)
+        if len(out) == keep:
+            break
+    # what was typed, when the catalog really has it ("harr" = Jonathan Harr), always stays as a choice
+    if query not in out and any(q == query for _, q in scored):
+        out.append(query)
+    if out == [query]:
+        return []
+    return out
 
 
 def understand_query(original_query, sys, _fixed=False):
@@ -1218,6 +1323,35 @@ def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, f
     short = fold(query or '').strip().strip('.')
     expanded = SHORT_FORMS.get(short)
     q = expanded or query
+
+    # Misspelled words can mean several things ("poter" = potter OR peter): search the likeliest
+    # meaning, then add the other meanings as their own sections and as "Did you mean" links.
+    alternatives = [] if expanded else spelling_alternatives(sys, q)
+    if alternatives:
+        kw = dict(mood_filter=mood_filter, category_filter=category_filter, free_only=free_only)
+        df, banner = _search_core(alternatives[0], sys, top_k=top_k, online=online, **kw)
+        if banner and banner.startswith('No books match'):
+            banner = None
+        shown = set(df['dedup_key']) if 'dedup_key' in df.columns else set()
+        extra = []
+        for alt in alternatives[1:]:
+            d2, _ = _search_core(alt, sys, top_k=8, online=False, **kw)
+            if 'dedup_key' in d2.columns:
+                d2 = d2[~d2['dedup_key'].isin(shown)]
+            d2 = d2.head(6).copy()
+            if len(d2):
+                d2['section'] = f"Did you mean “{alt}”?"
+                shown |= set(d2['dedup_key']) if 'dedup_key' in d2.columns else set()
+                extra.append(d2)
+        if extra:
+            df = pd.concat([df] + extra, ignore_index=True)
+        note = '' if alternatives[0] == q else f"Showing results for “{alternatives[0]}”."
+        kept = banner if banner and not banner.startswith(('Searched for', 'Did you mean')) else ''
+        banner = ' '.join(x for x in (note, kept) if x) or None
+        out = add_why(df, alternatives[0], banner, category_filter)
+        out.attrs['alternatives'] = alternatives
+        return out, banner
+
     df, banner = _search_core(q, sys, mood_filter=mood_filter, category_filter=category_filter,
                               top_k=top_k, free_only=free_only, online=online)
     # Safety net: nothing found, but a title is a very close spelling match -> search that title instead
