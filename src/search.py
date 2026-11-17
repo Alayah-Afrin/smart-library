@@ -9,6 +9,7 @@ import heapq
 import faiss
 from rank_bm25 import BM25Okapi
 from rapidfuzz import fuzz, process, utils
+from rapidfuzz.distance import DamerauLevenshtein
 from sentence_transformers import SentenceTransformer
 import requests
 import html
@@ -302,6 +303,7 @@ def load_search_system(data_dir):
     authors_by_name = {k: sorted(dict.fromkeys(v), key=lambda a: -author_fame.get(a, 0))[:10]
                        for k, v in authors_by_name.items()}
     name_words = sorted(authors_by_name)
+    fix_words = [w for w in index_words if len(w) >= 3 and w.isalpha() and len(word_index[w]) >= 3]
     author_display = ranked_authors.drop_duplicates('author_norm').set_index('author_norm')['author'].to_dict()
     author_norm_of = work_dedup.drop_duplicates('author').set_index('author')['author_norm'].to_dict()
 
@@ -318,7 +320,7 @@ def load_search_system(data_dir):
         'word_index': word_index, 'index_words': index_words,
         'author_fame': author_fame, 'surname_fame': surname_fame,
         'surname_best_author': surname_best_author, 'author_display': author_display,
-        'authors_by_name': authors_by_name, 'name_words': name_words,
+        'authors_by_name': authors_by_name, 'name_words': name_words, 'fix_words': fix_words,
         'author_norm_of': author_norm_of,
     }
 
@@ -481,11 +483,35 @@ def pick_name(sys, word, allow_typo):
             nm, sc = max(better, key=lambda x: fame_of(x[0]))
             return {'name': nm, 'score': sc, 'exact': False}
         return {'name': word, 'score': 100, 'exact': True}
-    if allow_typo and near:
-        top = max(sc for _, sc in near)
-        nm, sc = max([x for x in near if x[1] >= top - 8], key=lambda x: fame_of(x[0]))   # near-tied spellings
-        return {'name': nm, 'score': sc, 'exact': False}
+    if allow_typo:
+        limit_edits = 1 if len(word) <= 5 else 2      # short words: 1 wrong letter ("frodo" is not Fyodor)
+        wide = []
+        for nm, sc, _ in process.extract(word, sys['name_words'], scorer=fuzz.ratio, score_cutoff=72, limit=20):
+            edits = DamerauLevenshtein.distance(word, nm)
+            if nm != word and edits <= limit_edits and nm[0] == word[0]:
+                wide.append((nm, sc, edits))       # a real catalog word keeps its first letter ("frodo" is not Brodo)
+        if word in sys['vocab']:                   # a word our books contain: only very close, much better-known names
+            wide = [x for x in wide if x[1] >= 85]
+        if wide:
+            # fewer wrong letters is likelier, but a far better-known name wins ("rolimg" -> rowling, not rolim)
+            nm, sc, _ = max(wide, key=lambda x: -30 * x[2] + 10 * math.log10(fame_of(x[0]) + 1))
+            return {'name': nm, 'score': max(sc, 85), 'exact': False}
     return None
+
+
+def best_title_word(sys, word):
+    """The catalog word a misspelled word most likely means AS A TITLE WORD: close spelling, much-read books."""
+    pop = sys['work_dedup']['rating_count'].fillna(0).to_numpy()
+    max_edits = 1 if len(word) <= 5 else 2 if len(word) <= 6 else 3
+    best, best_score = None, -1e9
+    for cand, _, _ in process.extract(word, sys['fix_words'], scorer=fuzz.ratio, score_cutoff=70, limit=40):
+        edits = DamerauLevenshtein.distance(word, cand)
+        if cand == word or edits > max_edits or cand[0] != word[0] or cand in STOPWORDS:
+            continue
+        score = -30 * edits + 6 * math.log10(1 + pop[docs_with(sys, cand)].sum())
+        if score > best_score:
+            best, best_score = cand, score
+    return best
 
 
 def titles_meaning(sys, original_query, reading):
@@ -494,6 +520,8 @@ def titles_meaning(sys, original_query, reading):
     misspelled ("herry potter" -> Harry Potter)."""
     wd = sys['work_dedup']
     words = [w for w in re.findall(r'\w+', fold(original_query)) if w not in STOPWORDS and len(w) >= 2]
+    if reading.get('title_word'):                     # one misspelled word: its title meaning (sherlok -> Sherlock)
+        words = [reading['title_word']]
     if not words:
         return wd.iloc[0:0]
     prefix = reading.get('title_prefix')
@@ -516,7 +544,7 @@ def titles_meaning(sys, original_query, reading):
         ok = np.ones(len(cand), dtype=bool)
         for i, w in enumerate(ws):
             if i == typo_at:                       # this word only needs a CLOSE word in the title (herry ~ harry)
-                ok &= col.map(lambda t, w=w: any(fuzz.ratio(w, x) >= 80 for x in re.findall(r'\w+', t))).to_numpy()
+                ok &= col.map(lambda t, w=w: any(fuzz.ratio(w, x) >= (75 if len(w) <= 5 else 80) for x in re.findall(r'\w+', t))).to_numpy()
             else:
                 end = '' if w == prefix else r'(?!\w)'
                 ok &= col.str.contains(r'(?<!\w)' + re.escape(w) + end, regex=True).to_numpy()
@@ -534,7 +562,53 @@ def titles_meaning(sys, original_query, reading):
     return found
 
 
-def understand_query(original_query, sys):
+def fix_typos(sys, query):
+    """Fix misspelled words using the words our books really contain, choosing the spelling that fits the
+    OTHER words typed: "lord of the rigns" -> rings (books have "lord" + "rings"), "percy jakson" -> jackson,
+    "jk rolimg" -> rowling (a name, next to initials), "chilfrend's" -> children's, "twilite" -> twilight.
+    Only words our catalog and the English dictionary have never seen are touched. -> the fixed query."""
+    tokens = query.split()
+    folded = [fold(t).strip('.,!?;:"()') for t in tokens]
+    bases = [f[:-2] if f.endswith(("'s", "’s")) else f for f in folded]
+    known_ids = [docs_with(sys, b) for b in bases
+                 if b in sys['vocab'] and b not in STOPWORDS and len(b) >= 3 and len(docs_with(sys, b))]
+    name_context = any(b not in STOPWORDS and b in sys['authors_by_name'] or (len(b.replace('.', '')) <= 3 and b.replace('.', '').isalpha()
+                                                        and b not in STOPWORDS) for b in bases)
+    pop = sys['work_dedup']['rating_count'].fillna(0).to_numpy()
+    out, changed = [], False
+    for tok, f, b in zip(tokens, folded, bases):
+        if not (len(b) >= 4 and b.isalpha() and b not in sys['vocab'] and not spell.known([b])):
+            out.append(tok)
+            continue
+        best, best_score = None, -1e9
+        max_edits = 1 if len(b) <= 5 else 2 if len(b) <= 6 else 3     # "twilite" -> twilight is 3
+        for cand, ratio, _ in process.extract(b, sys['fix_words'], scorer=fuzz.ratio, score_cutoff=70, limit=40):
+            edits = DamerauLevenshtein.distance(b, cand)   # a wrong, missing, extra or swapped letter = 1 edit
+            if edits > max_edits or cand[0] != b[0]:          # the first letter is kept ("frodo" is not Brodo)
+                continue
+            ids = docs_with(sys, cand)
+            score = -30 * edits + 6 * math.log10(len(ids) + 1) + 3 * math.log10(1 + pop[ids].sum())   # common, much-read words
+            together = [np.intersect1d(ids, k, assume_unique=True) for k in known_ids]
+            if together and all(len(t) for t in together):
+                # it appears in books together with the other words: the more those books are read, the
+                # likelier ("animal farn" -> farm: Animal Farm is read far more than Animal Fair)
+                both = together[0]
+                for t in together[1:]:
+                    both = np.intersect1d(both, t, assume_unique=True)
+                score += 15 + 4 * math.log10(1 + pop[both].sum() if len(both) else 1)
+            if name_context and cand in sys['authors_by_name']:
+                score += 6
+            if score > best_score:
+                best, best_score = cand, score
+        if best:
+            changed = True
+            out.append(best + (f[len(b):] if f != b else ''))
+        else:
+            out.append(tok)
+    return ' '.join(out) if changed else query
+
+
+def understand_query(original_query, sys, _fixed=False):
     """Decide how to read the query. Returns a dict:
     kind          'prefix' | 'author' | 'title_fix' | 'words'
     query         the text to search with
@@ -581,6 +655,12 @@ def understand_query(original_query, sys):
             authors = sys['authors_by_name'][pick['name']]
             norm = authors[0]
             corrected = not pick['exact']
+            if corrected:
+                tw = one if one in sys['vocab'] else best_title_word(sys, one)
+                if tw:
+                    out['title_word'] = tw
+                    if tw != one:
+                        out['title_from_typo'] = tw.title()
             return {**out, 'kind': 'author', 'author_norm': norm, 'author_name': sys['author_display'][norm],
                     'corrected': corrected, 'said': pick['name'],
                     'also_title': title_best if corrected and title_score >= 90 else None,   # only a very close title
@@ -595,8 +675,10 @@ def understand_query(original_query, sys):
         full = []
         typed_last = proc(q).split()[-1] if proc(q).split() else ''
         if n >= 2 and typed_last in sys['authors_by_name'] and title_score < 85:   # not "harry potter", "artificial intelligence"
+            typed_set = set(proc(q).split())
             full = [sys['author_list'][i] for _, _, i in process.extract(
-                proc(q), sys['author_proc'], scorer=fuzz.token_set_ratio, score_cutoff=100, limit=8)]
+                proc(q), sys['author_proc'], scorer=fuzz.token_set_ratio, score_cutoff=100, limit=8)
+                if typed_set <= set(sys['author_proc'][i].split())]   # the name has EVERY typed word ("Jackson" is not "percy jackson")
         if (strong and strong[0][1] >= title_score) or full:
             top = strong[0][1] if strong else 100
             tied = [a for a, s in strong if s >= top - 5] + full    # equally good spellings of the name
@@ -612,11 +694,29 @@ def understand_query(original_query, sys):
                     # "ronald tolkien" -> J.R.R. Tolkien (same person); "kathleen rowling" -> J.K. Rowling,
                     # not Kathleen Laing (an exact famous surname beats a first-name-only match)
                     norm = famous
+            corrected = False
+            fame = sys['author_fame']
+            famous_near = [sys['author_norm_of'][a] for a, sc in strong if sc >= 88]
+            if famous_near:                       # "jane austin" -> Jane Austen, not a little-known Jane Austin
+                star = max(famous_near, key=lambda x: fame.get(x, 0))
+                if fame.get(star, 0) >= 50 and fame.get(star, 0) >= 10 * max(fame.get(norm, 0), 1):
+                    norm, corrected = star, True
             also = []
             if n == 1 and one in sys['authors_by_name']:     # "arthur": the other well-known Arthurs too
                 also = other_authors(sys, sys['authors_by_name'][one][1:], norm)
             return {**out, 'kind': 'author', 'author_norm': norm, 'author_name': sys['author_display'][norm],
-                    'corrected': False, 'said': one or q, 'also_title': None, 'also_authors': also}
+                    'corrected': corrected, 'said': sys['author_display'][norm] if corrected else (one or q),
+                    'also_title': None, 'also_authors': also}
+
+    # 3b. misspelled words: fix them with the catalog's own words, then read the fixed query from the top
+    #     ("jk rolimg" -> jk rowling = an author; "lord of the rigns" -> a title; "chilfrend's book" -> words)
+    if not _fixed and has_unknown_word:
+        fixed = fix_typos(sys, q)
+        if fixed != q:
+            r = understand_query(fixed, sys, _fixed=True)
+            if r['kind'] == 'author':
+                r['corrected'], r['said'] = True, fixed
+            return r
 
     # 4. a misspelled title: only when a word looks like a typo, so real words stay as typed
     #    ("introduction to physics" must not become "...Metaphysics")
