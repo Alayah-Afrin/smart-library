@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Library</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    {% include '_theme_head.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="page">
+
+    <header class="masthead">
+    <h1><a href="/" class="home-link" title="Back to home">Smart Library</a></h1>
+        <p>Search by title or author, or describe the kind of book you want.</p>
+    </header>
+
+{% include '_nav.html' %}
+
+{% if page == 'top' %}
+<form method="get" action="/top" class="top-filter">
+  <select name="category" onchange="this.form.submit()">
+    <option value="">All categories</option>
+    {% for c in category_groups %}
+      <option value="{{ c }}" {% if c == selected_category %}selected{% endif %}>{{ c }}</option>
+    {% endfor %}
+  </select>
+</form>
+{% endif %}
+
+    {% if page != 'top' %}
+        <form class="search-form" method="GET" action="/" role="search">
+            <div class="search-wrap">
+                <input type="text" name="q" id="search-box" autocomplete="off" value="{{ query }}"
+                    placeholder="Try “harry potter” or “a book about loneliness”"
+                    aria-label="Search books" autofocus>
+                <div id="suggestions" class="suggestions"></div>
+            </div>
+            <select name="category" aria-label="Category">
+                <option value="">Any category</option>
+                {% for cat in category_groups %}
+                    <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+            <label class="free-toggle"><input type="checkbox" name="free" value="1" {% if free_checked %}checked{% endif %}> Free to read</label>
+            <button type="submit">Search</button>
+        </form>
+        {% if pick %}
+        <div class="pick">
+            <p class="pick-label">Today's read · changes every midnight</p>
+            <h2>{{ pick.title }}</h2>
+            <p class="author">{{ pick.author }}</p>
+            {% if pick.description is string and pick.description %}
+            <p class="pick-desc">{{ pick.description|replace('*','')|truncate(450) }}</p>
+            {% elif pick.subjects %}
+            <p class="pick-subjects">About: {{ pick.subjects|truncate(160) }}</p>
+            {% endif %}
+            <div class="why">{% for w in pick.why.split('|') %}<span class="chip{% if w == 'Free to read' %} chip-free{% endif %}">{{ w }}</span>{% endfor %}</div>
+            <div class="actions pick-actions">
+                {% if pick.reader_id %}
+                <a class="read-free" href="/read/{{ pick.reader_id }}">Read here</a>
+                {% else %}
+                <a class="read-free" href="{{ pick.read_url }}" target="_blank" rel="noopener">Read free ↗</a>
+                {% endif %}
+                {% if pick.book_key %}
+                <button type="button" class="save-btn" aria-pressed="false"
+                    data-key="{{ pick.book_key }}" data-title="{{ pick.title }}"
+                    data-author="{{ pick.author if pick.author is string else '' }}"
+                    data-cover="{{ pick.cover_url if pick.cover_url is string else '' }}"
+                    data-read="{% if pick.read_url is string %}{{ pick.read_url }}{% endif %}"
+                    data-reader="{{ pick.reader_id or '' }}">♡ Save</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    {% if suggestion %}
+        <div class="suggestion">{{ suggestion }}</div>
+    {% endif %}
+    {% if did_you_mean %}
+        <div class="suggestion">
+            Did you mean
+            <a class="dym-link" href="{{ url_for('home', q=did_you_mean, category=selected_category or None, free='1' if free_checked else None) }}">{{ did_you_mean }}</a>?
+        </div>
+    {% endif %}
+
+    {% if results %}
+        <div class="results">
+            {% set ns = namespace(last='') %}
+            {% for book in results %}
+                {% if book.section and book.section != ns.last %}
+                    <h2 class="section-heading">{{ book.section }}</h2>
+                    {% set ns.last = book.section %}
+                {% endif %}
+
+                {% set is_free = book.read_url is string and book.read_url %}
+                <article class="book-card">
+                    <div class="cover-wrap">
+                        {% if book.cover_url %}
+                            <img src="{{ book.cover_url }}{% if 'openlibrary.org/b/isbn' in book.cover_url %}?default=false{% endif %}"
+                                 alt="" loading="lazy"
+                                 onload="if (this.naturalWidth < 20) this.onerror();"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="no-cover" style="display:none;"><span>{{ book.title }}</span></div>
+                        {% else %}
+                            <div class="no-cover"><span>{{ book.title }}</span></div>
+                        {% endif %}
+                        {% if is_free %}<span class="cover-badge">Free</span>{% endif %}
+                    </div>
+
+                    <div class="card-body">
+                        <h3 title="{{ book.title }}">{{ book.title }}</h3>
+                        <p class="author" title="{{ book.author or 'Unknown author' }}">{{ book.author or 'Unknown author' }}</p>
+                        <div class="rating">
+                        {% if book.avg_rating %}
+                            <span class="stars" style="--r: {{ '%.2f' % book.avg_rating }}" aria-label="{{ '%.1f' % book.avg_rating }} out of 5"></span>
+                            <span class="score">{{ '%.1f' % book.avg_rating }}</span>
+                            <span class="count">({{ book.n_ratings|int }})</span>
+                        {% elif book.community_n %}
+                            <span class="stars" style="--r: {{ '%.2f' % book.community_avg }}" aria-label="{{ '%.1f' % book.community_avg }} out of 5"></span>
+                            <span class="score">{{ '%.1f' % book.community_avg }}</span>
+                            <span class="count">({{ book.community_n }} here)</span>
+                        {% else %}
+                            <span class="none">Not rated yet</span>
+                        {% endif %}
+                        </div>
+                        {% if book.avg_rating and book.community_n %}
+                        <p class="community-line" title="Ratings from Smart Library readers">Readers here: {{ '%.1f' % book.community_avg }}★ ({{ book.community_n }})</p>
+                        {% endif %}
+                        <p class="card-meta">
+                            {% if book.reason %}<span class="reason">{{ book.reason }}</span>{% endif %}
+                            {% if book.categories is string and book.categories %}<span class="cats" title="{{ book.categories }}">{{ book.categories|short_cats }}</span>{% endif %}
+                        </p>
+                    </div>
+
+                    <div class="card-foot">
+                        {% if book.reader_id %}
+                        <a class="btn-primary" href="/read/{{ book.reader_id }}">Read here</a>
+                        {% elif book.pdf_id is not none %}
+                        <a class="btn-primary" href="/read/pdf/{{ book.pdf_id }}">Read here</a>
+                        {% elif is_free %}
+                        <a class="btn-primary" href="{{ book.read_url }}" target="_blank" rel="noopener" title="Opens the free copy on the publisher's site">Read free ↗</a>
+                        {% else %}
+                        <a class="btn-secondary" href="{% if book.ol_key %}https://openlibrary.org{{ book.ol_key }}{% elif book.isbn13 %}https://openlibrary.org/isbn/{{ book.isbn13 }}{% else %}https://openlibrary.org/search?q={{ book.title|urlencode }}{% endif %}" target="_blank" rel="noopener">Read or borrow ↗</a>
+                        {% endif %}
+                        <div class="card-secondary">
+                            <button type="button" class="summary-btn"
+                                data-title="{{ book.title }}"
+                                data-author="{{ book.author if book.author is string else '' }}"
+                                data-isbn="{% if book.isbn13 is string %}{{ book.isbn13 }}{% endif %}"
+                                data-desc="{% if book.description is string %}{{ book.description|replace('*','') }}{% endif %}"
+                                data-read="{% if book.read_url is string %}{{ book.read_url }}{% endif %}"
+                                data-reader="{{ book.reader_id or '' }}"
+                                data-key="{{ book.book_key }}" aria-label="Summary and reviews" title="Summary and reviews">Summary</button>
+                            {% if book.book_key %}
+                            <button type="button" class="save-btn icon-only" aria-pressed="false" aria-label="Save to my shelf" title="Save to my shelf"
+                                data-key="{{ book.book_key }}" data-title="{{ book.title }}"
+                                data-author="{{ book.author if book.author is string else '' }}"
+                                data-cover="{{ book.cover_url if book.cover_url is string else '' }}"
+                                data-read="{% if book.read_url is string %}{{ book.read_url }}{% endif %}"
+                                data-reader="{{ book.reader_id or '' }}"
+                                data-pdf="{{ book.pdf_id if book.pdf_id is not none else '' }}">♡</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% elif query %}
+        {% if selected_category or free_checked %}
+            <p class="empty-state">
+                <a class="dym-link" href="{{ url_for('home', q=query) }}">Search all {{ 'books' if free_checked and not selected_category else 'categories' }} for “{{ query }}” instead</a>
+            </p>
+        {% elif not suggestion and not did_you_mean %}
+            <p class="empty-state">No books found. Try a different search.</p>
+        {% endif %}
+    {% endif %}
+
+</main>
+
+<div id="drawer-backdrop" class="drawer-backdrop"></div>
+<aside id="drawer" class="drawer" aria-hidden="true" role="dialog" aria-label="Book summary">
+  <button type="button" class="drawer-close" id="drawer-close" aria-label="Close">&times;</button>
+  <h3 id="drawer-title"></h3>
+  <p id="drawer-author" class="author"></p>
+  <p id="drawer-text" class="drawer-text"></p>
+  <a id="drawer-read" class="read-free" target="_blank" rel="noopener" style="display:none">Read free</a>
+  <div id="drawer-community"></div>
+</aside>
+
+<script src="{{ url_for('static', filename='shelf.js') }}"></script>
+<script src="{{ url_for('static', filename='community.js') }}"></script>
+
+
+<script>
+const box = document.getElementById('search-box');
+const list = document.getElementById('suggestions');
+let timer;
+
+function hideList() { if (list) { list.innerHTML = ''; list.style.display = 'none'; } }
+
+// the search box only exists on the search page, not on /top
+if (box) box.addEventListener('input', () => {
+  clearTimeout(timer);
+  const q = box.value.trim();
+  if (q.length < 2) { hideList(); return; }
+  timer = setTimeout(async () => {
+    const res = await fetch('/suggest?q=' + encodeURIComponent(q));
+    const items = await res.json();
+    if (box.value.trim() !== q) return;   // ignore stale responses
+    list.innerHTML = '';
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'suggestion-item';
+      const label = document.createElement('span');
+      label.textContent = item.text;
+      const tag = document.createElement('span');
+      tag.className = 'suggestion-type';
+      tag.textContent = item.type;
+      row.append(label, tag);
+      row.addEventListener('click', () => { box.value = item.text; box.form.submit(); });
+      list.appendChild(row);
+    });
+    list.style.display = items.length ? 'block' : 'none';
+  }, 200);
+});
+
+document.addEventListener('click', e => { if (!e.target.closest('.search-wrap')) hideList(); });
+
+const drawer = document.getElementById('drawer');
+const backdrop = document.getElementById('drawer-backdrop');
+function closeDrawer() {
+  drawer.classList.remove('open');
+  backdrop.classList.remove('open');
+  drawer.setAttribute('aria-hidden', 'true');
+}
+function closeFlyouts() {
+  document.querySelectorAll('.flyout').forEach(f => f.remove());
+  document.querySelectorAll('.book-card.is-open').forEach(c => c.classList.remove('is-open'));
+}
+document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+backdrop.addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeFlyouts(); } });
+document.addEventListener('click', e => {
+  if (!e.target.closest('.flyout') && !e.target.closest('.summary-btn')) closeFlyouts();
+});
+
+const descCache = {};
+async function fillSummary(d, textEl) {
+  const key = d.title + '|' + d.author;
+  textEl.dataset.key = key;
+  if (d.desc && !d.desc.startsWith('Subjects:')) { textEl.textContent = d.desc; return; }   // a subject list is not a summary: fetch one
+  if (descCache[key] !== undefined) { textEl.textContent = descCache[key] || 'No summary found for this book.'; return; }
+  textEl.textContent = 'Loading…';
+  try {
+    const q = new URLSearchParams({title: d.title, author: d.author, isbn: d.isbn});
+    const j = await (await fetch('/describe?' + q)).json();
+    if (j.error) { if (textEl.dataset.key === key) textEl.textContent = 'Could not load the summary. Close and try again.'; return; }
+    descCache[key] = j.text;
+    if (textEl.dataset.key === key) textEl.textContent = j.text || 'No summary found for this book.';
+  } catch (e) {
+    if (textEl.dataset.key === key) textEl.textContent = 'Could not load the summary. Close and try again.';
+  }
+}
+
+function openDrawer(d) {
+  document.getElementById('drawer-title').textContent = d.title;
+  document.getElementById('drawer-author').textContent = d.author;
+  const readLink = document.getElementById('drawer-read');
+  if (d.reader) { readLink.href = '/read/' + d.reader; readLink.target = ''; readLink.textContent = 'Read here'; readLink.style.display = 'inline-block'; }
+  else if (d.read) { readLink.href = d.read; readLink.target = '_blank'; readLink.textContent = 'Read free ↗'; readLink.style.display = 'inline-block'; }
+  else { readLink.style.display = 'none'; }
+  drawer.classList.add('open');
+  backdrop.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  fillSummary(d, document.getElementById('drawer-text'));
+  Community.render(document.getElementById('drawer-community'), d.key);
+}
+
+function openFlyout(btn) {
+  const card = btn.closest('.book-card');
+  const wasOpen = card.classList.contains('is-open');
+  closeFlyouts();
+  if (wasOpen) return;
+  const d = btn.dataset;
+  const f = document.createElement('div');
+  f.className = 'flyout';
+  if (card.getBoundingClientRect().right + 350 > window.innerWidth) f.classList.add('left');
+  f.innerHTML = '<button type="button" class="flyout-close" aria-label="Close">&times;</button>' +
+                '<h4>Summary</h4><p class="flyout-text"></p>';
+  if (d.reader || d.read) {
+    const a = document.createElement('a');
+    a.className = 'read-free';
+    if (d.reader) { a.href = '/read/' + d.reader; a.textContent = 'Read here'; }
+    else { a.href = d.read; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Read free ↗'; }
+    f.appendChild(a);
+  }
+  const comm = document.createElement('div');
+  f.appendChild(comm);
+  card.appendChild(f);
+  card.classList.add('is-open');
+  f.querySelector('.flyout-close').addEventListener('click', closeFlyouts);
+  fillSummary(d, f.querySelector('.flyout-text'));
+  Community.render(comm, d.key);
+}
+
+document.querySelectorAll('.summary-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // phones, and Today's read (not a card): side panel
+    if (window.innerWidth < 800 || !btn.closest('.book-card')) openDrawer(btn.dataset);
+    else openFlyout(btn);                                   // desktop: attached to the card
+  });
+});
+
+</script>
+</body>
+</html>

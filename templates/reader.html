@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} · Smart Library reader</title>
+    {% include '_theme_head.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="reader-body">
+<main class="page reader-page">
+    <header class="reader-head">
+        <a href="/" class="home-link reader-brand">Smart Library</a>
+        {% include '_nav.html' %}
+        <h1>{{ title }}</h1>
+        <p class="author">{{ author }}</p>
+    </header>
+
+    {% if error %}
+        <div class="suggestion">
+            Project Gutenberg isn't answering right now, so this book can't be opened here.
+            You can <a href="{{ source }}" target="_blank" rel="noopener">read it on Project Gutenberg</a> instead, or try again in a few minutes.
+        </div>
+    {% else %}
+        <div class="reader-tools" aria-label="Reading options">
+            <span class="reader-progress">Page {{ page_no }} of {{ pages }}</span>
+            <div class="progress-bar" aria-hidden="true"><span style="width: {{ (page_no / pages * 100)|round(1) }}%"></span></div>
+            <button type="button" class="tool-btn" id="font-down" aria-label="Smaller text">A−</button>
+            <button type="button" class="tool-btn" id="font-up" aria-label="Larger text">A+</button>
+        </div>
+
+        <article class="reader-text" id="reader-text">
+            {% for p in paras %}
+                {% if p.heading %}<h2>{{ p.text }}</h2>{% else %}<p>{{ p.text }}</p>{% endif %}
+            {% endfor %}
+        </article>
+
+        <nav class="reader-pager" aria-label="Pages">
+            {% if page_no > 1 %}<a class="pager-btn" href="?page={{ page_no - 1 }}" rel="prev">← Previous</a>{% else %}<span></span>{% endif %}
+            <form method="get" class="pager-jump">
+                <label>Go to page <input type="number" name="page" min="1" max="{{ pages }}" value="{{ page_no }}"></label>
+            </form>
+            {% if page_no < pages %}<a class="pager-btn" href="?page={{ page_no + 1 }}" rel="next">Next →</a>{% else %}<span></span>{% endif %}
+        </nav>
+        <p class="reader-credit">Public-domain text from <a href="{{ source }}" target="_blank" rel="noopener">Project Gutenberg</a>.</p>
+    {% endif %}
+</main>
+<script src="{{ url_for('static', filename='shelf.js') }}"></script>
+{% if not error %}
+<script>
+(() => {
+  const text = document.getElementById('reader-text');
+  const get = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
+  const set = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+  let size = parseFloat(get('sl_reader_size', '1.15'));
+  const apply = () => { text.style.fontSize = size + 'rem'; };
+  apply();
+  document.getElementById('font-up').onclick = () => { size = Math.min(size + 0.1, 1.8); set('sl_reader_size', size); apply(); };
+  document.getElementById('font-down').onclick = () => { size = Math.max(size - 0.1, 0.85); set('sl_reader_size', size); apply(); };
+  // remember where this reader stopped
+  set('sl_lastpage_{{ gid }}', '{{ page_no }}');
+  document.addEventListener('DOMContentLoaded', () => Shelf.setProgress({{ gid }}, {{ page_no }}, {{ pages }}));
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    const a = document.querySelector(e.key === 'ArrowRight' ? '[rel=next]' : e.key === 'ArrowLeft' ? '[rel=prev]' : null);
+    if (a) location.href = a.href;
+  });
+})();
+</script>
+{% endif %}
+</body>
+</html>

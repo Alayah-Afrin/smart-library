@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Book not available right now</title>
+    {% include '_theme_head.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="pdf-message-body">
+    <div class="suggestion pdf-message">
+        <p><b>{{ title }}</b> couldn't be opened here right now. The publisher's site may be busy or has moved the file.</p>
+        <p><a href="{{ pdf_url }}" target="_blank" rel="noopener">Open the PDF on the publisher's site ↗</a>
+           · <a href="{{ source }}" target="_blank" rel="noopener">About this book ↗</a></p>
+    </div>
+</body>
+</html>

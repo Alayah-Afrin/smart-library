@@ -1,0 +1,45 @@
+type,query,title_pat,author_pat,topic_pat
+title,harry potter,harry potter,,
+title,the hobbit,hobbit,,
+title,pride and prejudice,pride and prejudice,,
+title,moby dick,moby dick,,
+title,frankenstein,frankenstein,,
+title,the great gatsby,great gatsby,,
+title,to kill a mockingbird,mockingbird,,
+title,dracula,dracula,,
+title,the da vinci code,da vinci code,,
+typo,harry poter,harry potter,,
+typo,hobit,hobbit,,
+typo,pride and prejudise,pride and prejudice,,
+typo,moby dik,moby dick,,
+typo,frankenstine,frankenstein,,
+typo,great gatsbi,great gatsby,,
+author,stephen king,,stephen king,
+author,rowling,,rowling,
+author,agatha christie,,agatha christie,
+author,jane austen,,austen,
+author,garcia marquez,,marquez,
+author,dan brown,,dan brown,
+author,tolkien,,tolkien,
+author,mark twain,,mark twain,
+author,john grisham,,grisham,
+author_typo,jk roling,,rowling,
+author_typo,tolkein,,tolkien,
+author_typo,agatha cristie,,agatha christie,
+author_typo,stephen kng,,stephen king,
+author_typo,jane austin,,austen,
+author_typo,dan broun,,dan brown,
+topic,a book about loneliness,,,lonel|isolat|solitude
+topic,neural networks,,,neural network|deep learning|machine learning
+topic,machine learning,,,machine learning|data mining|pattern recognition|artificial intelligence
+topic,world war two,,,world war (ii|two|2)|second world war|holocaust|nazi
+topic,italian cooking,,,(?=.*ital)(?=.*(cook|recipe|cuisine))
+topic,learn python programming,,,python|programming
+topic,detective murder mystery,,,detective|murder|mystery|whodunit
+topic,space exploration,,,astronaut|nasa|cosmos|planet|astronomy|space (travel|explor|shuttle)
+topic,philosophy of mind,,,(?=.*philosoph)(?=.*(mind|conscious))
+topic,how to start a business,,,entrepreneur|start.?up|small business|business plan
+topic,poems about love,,,(?=.*(poem|poetry))(?=.*love)
+topic,history of ancient rome,,,(?=.*(rome|roman))(?=.*(histor|ancient|empire))
+topic,calculus,,,calculus
+topic,artificial intelligence,,,artificial intelligence

@@ -1,0 +1,34 @@
+# Python virtual environment (recreate with: pip install -r requirements.txt)
+venv/
+__pycache__/
+*.pyc
+
+# Backup zips (too big for Git)
+*.zip
+
+# Large data files (kept on disk, not in Git history)
+data/raw/
+# the book data lives in a private Hugging Face dataset (see scripts/upload_data.py)
+data/processed/
+
+# Small hand-made source lists ARE tracked
+!data/sources/
+# ...but the big generated lists are rebuilt with scripts/fetch_sources.py
+data/sources/gutenberg.csv
+data/sources/opentextbooks.csv
+data/sources/otl_pages/
+data/processed/backup_before_sources/
+
+# Private runtime data: secret key, reader reviews, downloaded book texts
+instance/
+data/cache/
+
+# Notebook checkpoints and editor files
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# stray file from a mistyped command
+Get-Command

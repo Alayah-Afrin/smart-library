@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Moderation · Smart Library</title>
+    {% include '_theme_head.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="page">
+    <header class="masthead"><h1><a href="/" class="home-link">Smart Library</a></h1><p>Moderation</p></header>
+    {% include '_nav.html' %}
+    {% for m in get_flashed_messages() %}<div class="suggestion">{{ m }}</div>{% endfor %}
+
+    {% if not logged_in %}
+        <form method="post" class="admin-login">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <label>Admin password <input type="password" name="password" required autocomplete="current-password"></label>
+            <button type="submit" class="pager-btn">Sign in</button>
+        </form>
+    {% else %}
+        <h2 class="section-heading">How readers feel (all comments)</h2>
+        <div class="admin-row">
+            <p class="muted">Sentiment model: {{ model_status }}</p>
+            {% if site %}
+                <p class="feel-verdict">{{ site.verdict }} · {{ site.total }} analysed comments</p>
+                <div class="feel-bar">{% for k in ['positive', 'neutral', 'negative'] %}{% if site.percent[k] %}<span class="feel-{{ k }}" style="width: {{ site.percent[k] }}%"></span>{% endif %}{% endfor %}</div>
+                <p class="feel-legend">😊 {{ site.counts.positive }} positive   😐 {{ site.counts.neutral }} neutral   😞 {{ site.counts.negative }} negative</p>
+            {% else %}
+                <p>No analysed comments yet.</p>
+            {% endif %}
+        </div>
+
+        <h2 class="section-heading">Needs a look ({{ reviews|length }})</h2>
+        <p class="muted" style="margin-bottom:10px">Reported comments, and comments where the stars and the words disagree (for example 5★ with an angry comment), which is often spam or a mistake.</p>
+        {% for r in reviews %}
+            <div class="admin-row">
+                <p><b>{{ r.rating }}★</b> · {{ r.reports }} report{{ 's' if r.reports != 1 }} · {{ r.created_at }} · <span class="muted">{{ r.book_key }}</span>
+                   {% if r.sentiment in ('positive', 'neutral', 'negative') %}<span class="feel-tag feel-tag-{{ r.sentiment }}">{{ r.sentiment }} ({{ '%.0f' % ((r.sentiment_score or 0) * 100) }}%)</span>{% endif %}
+                   {% if not r.checked and ((r.rating >= 4 and r.sentiment == 'negative') or (r.rating <= 2 and r.sentiment == 'positive')) %}<span class="flag">stars ≠ words</span>{% endif %}</p>
+                {% if r.report_reasons %}
+                {% set reasons = r.report_reasons.split(',') %}
+                <p class="muted">Reported as: {% for reason in reasons|unique %}{{ reasons|select('equalto', reason)|list|length }}× {{ reason }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+                {% endif %}
+                <p class="admin-comment">{{ r.comment or '(no comment)' }}</p>
+                <form method="post" class="admin-actions">
+                    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                    <input type="hidden" name="id" value="{{ r.id }}">
+                    <button name="action" value="keep" class="summary-btn">Keep</button>
+                    <button name="action" value="delete" class="summary-btn danger">Delete</button>
+                </form>
+            </div>
+        {% else %}
+            <p class="empty-state">Nothing needs a look. 🎉</p>
+        {% endfor %}
+    {% endif %}
+</main>
+<script src="{{ url_for('static', filename='shelf.js') }}"></script>
+</body>
+</html>

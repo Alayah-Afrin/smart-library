@@ -1,0 +1,27 @@
+# Every push to the main branch on GitHub also updates the website on Hugging Face.
+# Needs, in the GitHub repo settings (Settings -> Secrets and variables -> Actions):
+#   secret   HF_TOKEN     a Hugging Face token with WRITE access
+#   variable HF_SPACE     e.g.  your-name/smart-library
+name: Deploy to Hugging Face
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # also lets you run it by hand from the Actions tab
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push the code to the Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE" ]; then
+            echo "Set the HF_TOKEN secret and HF_SPACE variable in the repo settings first."; exit 1
+          fi
+          git push --force "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" HEAD:main

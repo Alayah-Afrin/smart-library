@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My shelf · Smart Library</title>
+    {% include '_theme_head.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="page">
+    <header class="masthead">
+        <h1><a href="/" class="home-link" title="Back to home">Smart Library</a></h1>
+        <p>Your saved books. They're kept in this browser only — no account needed.</p>
+    </header>
+    {% include '_nav.html' %}
+
+    <section id="continue" hidden>
+        <h2 class="section-heading">Continue reading</h2>
+        <div class="results" id="continue-list"></div>
+    </section>
+    <section>
+        <h2 class="section-heading" id="saved-heading">Saved books</h2>
+        <div class="results" id="shelf-list"></div>
+    </section>
+    <p class="empty-state" id="shelf-empty" hidden>Your shelf is empty. Tap <b>♡ Save</b> on any book to keep it here.</p>
+</main>
+
+<script src="{{ url_for('static', filename='shelf.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const books = Shelf.all();
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+
+  function card(b) {
+    const art = el('article', 'book-card');
+    const wrap = el('div', 'cover-wrap');
+    if (b.cover) {
+      const img = el('img'); img.src = b.cover; img.alt = b.title; img.loading = 'lazy';
+      img.onerror = () => { img.remove(); wrap.appendChild(el('div', 'no-cover', b.title)); };
+      wrap.appendChild(img);
+    } else wrap.appendChild(el('div', 'no-cover', b.title));
+    art.append(wrap, el('h3', '', b.title), el('p', 'author', b.author || 'Unknown author'));
+    if (b.pages) {
+      art.appendChild(el('p', 'shelf-progress', `Page ${b.progress} of ${b.pages}`));
+      const bar = el('div', 'progress-bar'); const fill = el('span'); fill.style.width = (b.progress / b.pages * 100) + '%';
+      bar.appendChild(fill); art.appendChild(bar);
+    }
+    const actions = el('div', 'actions');
+    if (b.pdf) {
+      const a = el('a', 'read-free', 'Read here'); a.href = '/read/pdf/' + encodeURIComponent(b.pdf);
+      actions.appendChild(a);
+    } else if (b.reader) {
+      const a = el('a', 'read-free', b.progress ? 'Continue' : 'Read here');
+      a.href = '/read/' + encodeURIComponent(b.reader) + (b.progress ? '?page=' + b.progress : '');
+      actions.appendChild(a);
+    } else if (b.read) {
+      const a = el('a', 'read-free', 'Read free ↗'); a.href = b.read; a.target = '_blank'; a.rel = 'noopener';
+      actions.appendChild(a);
+    }
+    const rm = el('button', 'summary-btn', 'Remove'); rm.type = 'button';
+    rm.onclick = () => { Shelf.remove(b.key); art.remove(); if (!Shelf.all().length) document.getElementById('shelf-empty').hidden = false; };
+    actions.appendChild(rm);
+    art.appendChild(actions);
+    return art;
+  }
+
+  const reading = books.filter(b => b.pages && b.progress < b.pages).sort((a, b) => (b.lastRead || 0) - (a.lastRead || 0));
+  if (reading.length) {
+    document.getElementById('continue').hidden = false;
+    reading.forEach(b => document.getElementById('continue-list').appendChild(card(b)));
+  }
+  books.forEach(b => document.getElementById('shelf-list').appendChild(card(b)));
+  if (!books.length) { document.getElementById('shelf-empty').hidden = false; document.getElementById('saved-heading').hidden = true; }
+});
+</script>
+</body>
+</html>

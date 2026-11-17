@@ -1,0 +1,133 @@
+type,query,mode,P@5,nDCG@10,MRR,n_relevant_in_catalog,top3
+title,harry potter,BM25,1.0,1.0,1.0,90,Harry Potter | Harry Potter Fun Book | Harry Potter Collector's Value Guide
+title,harry potter,Semantic,1.0,1.0,1.0,90,Harry Potter and the Sorcerer's Stone (Harry Potter (Paperback)) | Harry Potter and the Chamber of Secrets (Book 2) | Harry Potter and the Philosopher's Stone
+title,harry potter,Hybrid,1.0,1.0,1.0,90,Harry Potter and the Sorcerer's Stone (Harry Potter (Paperback)) | Harry Potter and the Chamber of Secrets (Book 2) | Harry Potter and the Prisoner of Azkaban (Book 3)
+title,the hobbit,BM25,1.0,1.0,1.0,23,Lo Hobbit / The Hobbit | Hobbit Companion | The Hobbit (Leatherette Collector's Edition)
+title,the hobbit,Semantic,1.0,0.9363792118010481,1.0,23,The Hobbit (Leatherette Collector's Edition) | Lo Hobbit / The Hobbit | The Hobbit: or There and Back Again
+title,the hobbit,Hybrid,1.0,1.0,1.0,23,The Hobbit : The Enchanting Prelude to The Lord of the Rings | The Hobbit (Leatherette Collector's Edition) | The Hobbit: or There and Back Again
+title,pride and prejudice,BM25,0.8,0.8611375561264454,1.0,16,Pride and Prejudice | Pride & Prejudice (Wordsworth Classics) | Pride and Prejudice (Intermediate Level)
+title,pride and prejudice,Semantic,0.8,0.7191184989488184,1.0,16,Pride and Prejudice | Pride & Prejudice (Wordsworth Classics) | Pride and Prejudice (Intermediate Level)
+title,pride and prejudice,Hybrid,1.0,1.0,1.0,16,Pride and Prejudice | Pride and Prejudice (Intermediate Level) | Presumption: An Entertainment : A Sequel to Pride and Prejudice
+title,moby dick,BM25,1.0,1.0,1.0,19,Moby Dick | Moby-Dick | Moby dick
+title,moby dick,Semantic,0.8,0.905211635630449,1.0,19,Moby Dick | Moby-Dick | Moby dick
+title,moby dick,Hybrid,0.8,0.914856882358379,1.0,19,"Moby-Dick | Moby-Dick Or, the Whale (Penguin Classics) | Moby Dick or the White Whale"
+title,frankenstein,BM25,1.0,1.0,1.0,58,Frankenstein (Enriched Classics Series) | Frankenstein | Frankenstein Unbound
+title,frankenstein,Semantic,1.0,1.0,1.0,58,Frankenstein (Enriched Classics Series) | Frankenstein | Frankenstein (Changing Our World)
+title,frankenstein,Hybrid,1.0,1.0,1.0,58,"Frankenstein (Changing Our World) | Frankenstein Or, the Modern Prometheus | Father of Frankenstein"
+title,the great gatsby,BM25,1.0,1.0,1.0,15,The Great Gatsby | The Great Gatsby CD | The GREAT GATSBY (Scribner Classic)
+title,the great gatsby,Semantic,1.0,0.9363792118010481,1.0,15,"The Great Gatsby | Great Gatsby, The | Der Grobe Gatsby/the Great Gatsby"
+title,the great gatsby,Hybrid,1.0,1.0,1.0,15,The Great Gatsby | Der Grobe Gatsby/the Great Gatsby | The Great Gatsby CD
+title,to kill a mockingbird,BM25,1.0,0.933745776545611,1.0,16,To Kill a Mockingbird | To Kill a Mockingbird (Cliffs Notes) | To Kill a Mockingbird Notes (Cliffs Notes)
+title,to kill a mockingbird,Semantic,1.0,1.0,1.0,16,To Kill a Mockingbird | TO KILL A MOCKINGBIRD - HHP EDT | To Kill a Mockingbird (Cliffs Notes)
+title,to kill a mockingbird,Hybrid,1.0,1.0,1.0,16,To Kill a Mockingbird | To Kill a Mockingbird (Cliffs Notes) | TO KILL A MOCKINGBIRD - HHP EDT
+title,dracula,BM25,1.0,1.0,1.0,90,Dracula | Drácula (Clásicos selección series) | Dracula (Signet Classics (Paperback))
+title,dracula,Semantic,1.0,1.0,1.0,90,Dracula (Signet Classics (Paperback)) | The Essential Dracula | Dracula
+title,dracula,Hybrid,1.0,1.0,1.0,90,"Dracula (Signet Classics (Paperback)) | Dracula (Wordsworth Classics) | The Secret Life of Laszlo, Count Dracula"
+title,the da vinci code,BM25,0.6,0.5857421563596759,1.0,7,El Codigo Da Vinci / The Da Vinci Code | The Da Vinci Code (Random House Large Print) | The Da Vinci Hoax: Exposing the Errors in The Da Vinci Code
+title,the da vinci code,Semantic,0.6,0.7392674247768478,1.0,7,The Da Vinci Code (Random House Large Print) | El Codigo Da Vinci / The Da Vinci Code | The Da Vinci Papers
+title,the da vinci code,Hybrid,1.0,1.0,1.0,7,The Da Vinci Code (Random House Large Print) | El Codigo Da Vinci / The Da Vinci Code | The Da Vinci Hoax: Exposing the Errors in The Da Vinci Code
+typo,harry poter,BM25,0.0,0.0,0.0,90,Harry Lorayne's Page-A-Minute Memory Book | Harry and Wally's Favorite TV Shows | Classic Crews : A Harry Crews Reader
+typo,harry poter,Semantic,0.0,0.20641593223508903,0.14285714285714285,90,The Cook | PRINCE OF THE NORTH | Harry's Game
+typo,harry poter,Hybrid,1.0,1.0,1.0,90,Harry Potter and the Sorcerer's Stone (Harry Potter (Paperback)) | Harry Potter and the Chamber of Secrets (Book 2) | Harry Potter and the Prisoner of Azkaban (Book 3)
+typo,hobit,BM25,0.0,0.0,0.0,23,
+typo,hobit,Semantic,0.0,0.0,0.0,23,The Hob's Bargain | Letters to Hoo | Hobgoblin
+typo,hobit,Hybrid,1.0,1.0,1.0,23,The Hobbit : The Enchanting Prelude to The Lord of the Rings | The Hobbit (Leatherette Collector's Edition) | The Hobbit: or There and Back Again
+typo,pride and prejudise,BM25,0.2,0.35970991185182927,1.0,16,Pride and Prejudice | Pride and Prudence | Anora's Pride : Anoras Pride
+typo,pride and prejudise,Semantic,0.0,0.0,0.0,16,"Pride and Prescience : Or, A Truth Univesally Acknowledged | Pride and Prudence | Pride and the Anguish"
+typo,pride and prejudise,Hybrid,1.0,1.0,1.0,16,Pride and Prejudice | Pride and Prejudice (Intermediate Level) | Presumption: An Entertainment : A Sequel to Pride and Prejudice
+typo,moby dik,BM25,0.6,0.5368103404171507,0.5,19,Gangway (Hagar the Horrible) | Moby Dick | Handyman Special (Hagar the Horrible)
+typo,moby dik,Semantic,0.4,0.4011248950259844,0.25,19,Smart Mobs: The Next Social Revolution | Booty Nomad | Inherit the Mob
+typo,moby dik,Hybrid,0.4,0.7100226348397881,1.0,19,"Moby-Dick | Moby-Dick Or, the Whale (Penguin Classics) | Moby-Dick: An Authoritative Text (Norton Critical Edition)"
+typo,frankenstine,BM25,0.0,0.0,0.0,58,
+typo,frankenstine,Semantic,0.0,0.0,0.0,58,Mondbad. | Absolutely Frank | Berserker
+typo,frankenstine,Hybrid,1.0,1.0,1.0,58,"Frankenstein (Changing Our World) | Frankenstein Or, the Modern Prometheus | Father of Frankenstein"
+typo,great gatsbi,BM25,0.0,0.0,0.0,15,Junior Great Books | Sandro Botticelli Great Masters | Great Chefs of Chicago
+typo,great gatsbi,Semantic,1.0,0.8579809428223729,1.0,15,"Great Gatsby, The | The Great Gatsby | F. Scott Fitzgerald's the Great Gatsby"
+typo,great gatsbi,Hybrid,1.0,1.0,1.0,15,The Great Gatsby | The GREAT GATSBY (Scribner Classic) | Der Grobe Gatsby/the Great Gatsby
+author,stephen king,BM25,1.0,1.0,1.0,302,Stephen King 3 | Stephen King (Classics Series) | Stephen King Danse Macabre
+author,stephen king,Semantic,1.0,1.0,1.0,302,Stephen King 3 | Es. | Ã?Â?a
+author,stephen king,Hybrid,1.0,1.0,1.0,302,Dreamcatcher | Hearts In Atlantis | Dolores Claiborne
+author,rowling,BM25,0.6,0.7353797772725617,1.0,78,Conversations with J. K. Rowling | Harry Potter | J. K. Rowling Vista
+author,rowling,Semantic,0.2,0.3827160388385182,0.3333333333333333,78,Conversations with J.K. Rowling | J. K. Rowling Vista | I El Pres D'askaban
+author,rowling,Hybrid,1.0,1.0,1.0,78,Harry Potter and the Sorcerer's Stone (Harry Potter (Paperback)) | Harry Potter and the Chamber of Secrets (Book 2) | Harry Potter and the Prisoner of Azkaban (Book 3)
+author,agatha christie,BM25,1.0,1.0,1.0,349,Agatha Christie | Poirot Investigates by Agatha Christie | The Agatha Christie Collection
+author,agatha christie,Semantic,1.0,1.0,1.0,349,Agatha Christie: An Autobiography | REMEMBERED DEATH | Murder in Retrospect
+author,agatha christie,Hybrid,1.0,1.0,1.0,349,And Then There Were None | Murder on the Orient Express (Hercule Poirot Mysteries (Paperback)) | And Then There Were None : A Novel
+author,jane austen,BM25,1.0,1.0,1.0,74,Bedside Jane Austen | A Jane Austen Miscellany | Complete Novels of Jane Austen
+author,jane austen,Semantic,1.0,0.9363792118010481,1.0,74,"Emma (Penguin Popular Classics) | Bedside Jane Austen | Jane Austen, Her Complete Novels"
+author,jane austen,Hybrid,1.0,1.0,1.0,74,Pride and Prejudice | Sense and Sensibility | Emma (Penguin Popular Classics)
+author,garcia marquez,BM25,1.0,1.0,1.0,108,La hojarasca | LA Hojarasca | Strange Pilgrims
+author,garcia marquez,Semantic,1.0,0.9216017310213246,1.0,108,LA Hojarasca | La Mala Hora | Por la Libre
+author,garcia marquez,Hybrid,1.0,1.0,1.0,108,One Hundred Years of Solitude (Oprah's Book Club) | Love in the Time of Cholera (Penguin Great Books of the 20th Century) | Of Love and Other Demons (Penguin Great Books of the 20th Century)
+author,dan brown,BM25,1.0,1.0,1.0,29,Matter | Origine | Illuminati
+author,dan brown,Semantic,1.0,0.7967610662472991,1.0,29,Matter | Illuminati | Deception Point
+author,dan brown,Hybrid,1.0,0.8521705090845474,1.0,29,Angels & Demons | Digital Fortress : A Thriller | El Codigo Da Vinci / The Da Vinci Code
+author,tolkien,BM25,0.8,0.7849818707050382,1.0,147,Tolkien Diary 2000 | A Tolkien Miscellany | The Tolkien Reader
+author,tolkien,Semantic,0.8,0.8486026589039899,1.0,147,The Tolkien Reader | The Hobbit (Leatherette Collector's Edition) | The Lord of the Rings (Movie Art Cover)
+author,tolkien,Hybrid,1.0,1.0,1.0,147,"The Fellowship of the Ring (The Lord of the Rings, Part 1) | The Hobbit : The Enchanting Prelude to The Lord of the Rings | The Two Towers (The Lord of the Rings, Part 2)"
+author,mark twain,BM25,1.0,1.0,1.0,237,The Unabridged Mark Twain | Autobiography of Mark Twain | The Illustrated Mark Twain
+author,mark twain,Semantic,0.6,0.6364741801035538,1.0,237,The Unabridged Mark Twain | The Unabridged Mark Twain | Mark Twain's Best
+author,mark twain,Hybrid,1.0,1.0,1.0,237,The Adventures of Huckleberry Finn (Bantam Classics) | The Adventures of Tom Sawyer (Adventures of Tom Sawyer) | A Connecticut Yankee in King Arthur's Court (Bantam Classic)
+author,john grisham,BM25,1.0,1.0,1.0,91,L'Associe | L'id©aliste | L'Engrenage
+author,john grisham,Semantic,1.0,1.0,1.0,91,The Client | A Time to Kill | The Rainmaker
+author,john grisham,Hybrid,1.0,1.0,1.0,91,A Painted House | The Pelican Brief | The Firm
+author_typo,jk roling,BM25,0.8,0.5658245193320781,0.5,78,Wolf's Head | Animaux Fantastiques | El ickabog
+author_typo,jk roling,Semantic,0.0,0.0,0.0,78,The J Factor | Iron Wok Jan (Iron Wok Jan!) | The Secret Gift
+author_typo,jk roling,Hybrid,1.0,1.0,1.0,78,Harry Potter and the Sorcerer's Stone (Harry Potter (Paperback)) | Harry Potter and the Chamber of Secrets (Book 2) | Harry Potter and the Prisoner of Azkaban (Book 3)
+author_typo,tolkein,BM25,0.0,0.0,0.0,147,
+author_typo,tolkein,Semantic,0.0,0.0,0.0,147,Under Radar | The Player (Vintage Contemporaries) | The Master
+author_typo,tolkein,Hybrid,1.0,1.0,1.0,147,"The Fellowship of the Ring (The Lord of the Rings, Part 1) | The Hobbit : The Enchanting Prelude to The Lord of the Rings | The Two Towers (The Lord of the Rings, Part 2)"
+author_typo,agatha cristie,BM25,1.0,1.0,1.0,349,Agatha Christie | Agatha Christie: An Autobiography | Poirot Investigates by Agatha Christie
+author_typo,agatha cristie,Semantic,0.6,0.7538142945344392,1.0,349,Starring Miss Marple | Telon | Karibische Affaire
+author_typo,agatha cristie,Hybrid,1.0,1.0,1.0,349,And Then There Were None | Murder on the Orient Express (Hercule Poirot Mysteries (Paperback)) | And Then There Were None : A Novel
+author_typo,stephen kng,BM25,0.8,0.6936634693435663,1.0,302,Stephen King 3 | Stephen King's Danse Macabre | Stephen King (Classics Series)
+author_typo,stephen kng,Semantic,0.2,0.08514311764162098,0.2,302,Bones | Kaspar | Skellig
+author_typo,stephen kng,Hybrid,1.0,1.0,1.0,302,Dreamcatcher | Hearts In Atlantis | Dolores Claiborne
+author_typo,jane austin,BM25,0.0,0.0,0.0,74,"Orgullo Y Prejuicio | Sense & Sensibility (Everyman's Poetry Series) | The Works of Jane Austen: Minor Works (The Oxford Illustrated Jane Auston, Vol.6)"
+author_typo,jane austin,Semantic,0.0,0.0,0.0,74,Jane and the Man of the Cloth: Being the Second Jane Austin Mystery | Her Living Image | Eccentric Lady
+author_typo,jane austin,Hybrid,0.0,0.0,0.0,74,"Sense & Sensibility (Everyman's Poetry Series) | Orgullo Y Prejuicio | The Works of Jane Austen: Minor Works (The Oxford Illustrated Jane Auston, Vol.6)"
+author_typo,dan broun,BM25,0.0,0.06362078819895171,0.1,29,Dan Friedman: Radical Modernism | Outtakes: Dan Patrick (ESPN Book) | Dan Flavin: The Architecture of Light
+author_typo,dan broun,Semantic,0.0,0.0,0.0,29,Chump Change | Daniel | Outtakes: Dan Patrick (ESPN Book)
+author_typo,dan broun,Hybrid,1.0,0.8521705090845474,1.0,29,Angels & Demons | Digital Fortress : A Thriller | El Codigo Da Vinci / The Da Vinci Code
+topic,a book about loneliness,BM25,1.0,1.0,1.0,568,The Wizard of Loneliness | Loneliness | The Well of Loneliness
+topic,a book about loneliness,Semantic,1.0,1.0,1.0,568,Loneliness | Loneliness: the experience of emotional and social isolation | Positive Solitude: A Practical Program for Mastering Loneliness and Achieving Self-Fulfillment
+topic,a book about loneliness,Hybrid,1.0,1.0,1.0,568,Loneliness | Children of loneliness | Mr. Loneliness
+topic,neural networks,BM25,1.0,1.0,1.0,245,Complex-Valued Neural Networks | Neural Networks and Deep Learning | Learn Keras for Deep Neural Networks
+topic,neural networks,Semantic,0.8,0.7065443116025597,0.5,245,Abstraktion und Einfühlung | Machine Learning - A Journey To Deep Learning: With Exercises And Answers | The Principles of Deep Learning Theory
+topic,neural networks,Hybrid,1.0,1.0,1.0,245,Complex-Valued Neural Networks | Neural Networks and Deep Learning | Learn Keras for Deep Neural Networks
+topic,machine learning,BM25,1.0,1.0,1.0,342,Machine Learning | Machine Learning | Machine Learning
+topic,machine learning,Semantic,0.8,0.905211635630449,1.0,342,Machine Learning | Understanding Machine Learning | Machine Learning
+topic,machine learning,Hybrid,1.0,1.0,1.0,342,"Computer Systems That Learn: Classification and Prediction Methods from Statistics, Neural Nets, Machine Learning, and Expert Systems (Machine Learning Series) | Machine Learning | Machine Learning"
+topic,world war two,BM25,1.0,0.933745776545611,1.0,588,World War Two | The World War Two Reader | The Good War: An Oral History of World War Two
+topic,world war two,Semantic,1.0,1.0,1.0,588,World War Two | Great Campaigns of World War II | Second World War
+topic,world war two,Hybrid,1.0,1.0,1.0,588,World War Two | The World War Two Reader | The Good War: An Oral History of World War Two
+topic,italian cooking,BM25,1.0,1.0,1.0,152,Excel Italian Cooking | Italian Cooking | Italian Cooking
+topic,italian cooking,Semantic,1.0,1.0,1.0,152,Classic Italian Cooking | The best of Italian cooking | The Italian Cooking Encyclopedia
+topic,italian cooking,Hybrid,1.0,1.0,1.0,152,Essentials of Classic Italian Cooking | More Classic Italian Cooking | Italian Cooking - Tuscan (International Gourmet)
+topic,learn python programming,BM25,1.0,1.0,1.0,641,Programming Python (2nd Edition) | Learn Python | Python Web Programming
+topic,learn python programming,Semantic,0.8,0.8611375561264454,1.0,641,Learning Python (Help for Programmers) | Abstraktion und Einfühlung | Introduction to Computer Programming with Python
+topic,learn python programming,Hybrid,1.0,1.0,1.0,641,Introduction to Computer Programming with Python | Introduction to Python Programming | C++ and Python Programming
+topic,detective murder mystery,BM25,1.0,1.0,1.0,8355,Murder Mystery | The Father's Club: A Suburban Detective Mystery (Suburban Detective Mysteries) | The Last Housewife: A Suburban Detective Mystery (Suburban Detective Mysteries)
+topic,detective murder mystery,Semantic,1.0,1.0,1.0,8355,Murder Mysteries | How to Solve a Murder: The Forensic Handbook | The Anatomy of Murder
+topic,detective murder mystery,Hybrid,1.0,1.0,1.0,8355,Murder Mystery | Masterpieces of Mystery in Four Volumes: Detective Stories | Book of Detective Stories
+topic,space exploration,BM25,0.8,0.6274092458891772,1.0,1757,Eyewitness: Space Exploration | Space Exploration (Eyewitness Books) | Space Exploration (Chambers Compact Reference Series)
+topic,space exploration,Semantic,0.6,0.47684658870035296,0.5,1757,Exploring Space: A Guide to Exploration of the Universe (Golden Guide) | Nasa: Visions of Space : Capturing the History of Nasa | Journey to the Stars: Space Exploration Tomorrow and Beyond
+topic,space exploration,Hybrid,0.8,0.7529694065526481,1.0,1757,"Eyewitness: Space Exploration | Can You Hear a Shout in Space?: Questions and Answers About Space Exploration (Berger, Melvin. Scholastic Question and Answer Series.) | Living in Space: A Handbook for Work & Exploration Beyond the Earth's Atmosphere"
+topic,philosophy of mind,BM25,1.0,0.9305687780632227,1.0,59,Philosophy of Mind | Introduction to Philosophy: Philosophy of Mind | Elements of the philosophy of the human mind
+topic,philosophy of mind,Semantic,0.6,0.624232247406789,1.0,59,Introduction to Philosophy: Philosophy of Mind | Abstraktion und Einfühlung | Philosophy of Mind: A Contemporary Introduction (Routledge Contemporary Introductions to Philosophy)
+topic,philosophy of mind,Hybrid,1.0,1.0,1.0,59,Introduction to Philosophy: Philosophy of Mind | Philosophy of Mind | Lectures on the Philosophy of the Human Mind (Vol. 1 of 3)
+topic,how to start a business,BM25,0.2,0.41939799988819815,1.0,202,How to Start a Business in Connecticut | How to Start a Home-Based Photography Business | How to Start a Home-Based Writing Business
+topic,how to start a business,Semantic,0.8,0.6320787427864671,0.5,202,FIELD GUIDE TO STARTING A BUSINESS | The McGraw-Hill Guide to Starting Your Own Business: A Step-By-Step Blueprint for the First-Time Entrepreneur | Business Startup 101
+topic,how to start a business,Hybrid,0.4,0.42838543210841196,1.0,202,WoW Entrepreneur - How to Start Your Own Business | How to Start a Business Website (The 21st Century Entrepreneur) | HOW TO START A HOME-BASED MAIL ORDER BUSINESS
+topic,poems about love,BM25,1.0,1.0,1.0,223,Love Poems | Love Poems | Love Poems
+topic,poems about love,Semantic,1.0,1.0,1.0,223,Poems About Love | Poems of Love | Love Love Love: Poems on the Meaning of Love for People in Love
+topic,poems about love,Hybrid,1.0,1.0,1.0,223,Poems About Love | Poems of Love | Love Love Love: Poems on the Meaning of Love for People in Love
+topic,history of ancient rome,BM25,1.0,1.0,1.0,1871,History of Ancient Rome | A Smaller History of Rome | Ancient Rome
+topic,history of ancient rome,Semantic,0.8,0.8899541168509599,1.0,1871,History of Ancient Rome | Early History of Rome: Books I-V of the History of Rome from Its Foundation (Penguin Classics) | Abstraktion und Einfühlung
+topic,history of ancient rome,Hybrid,1.0,1.0,1.0,1871,History of Ancient Rome | The Beginnings of Rome: Italy and Rome from the Bronze Age to the Punic Wars (C. 1000-264 Bc) (Routledge History of the Ancient World) | A Smaller History of Rome
+topic,calculus,BM25,1.0,1.0,1.0,192,The Calculus Wars | Calculus Companion to Accompany Calculus | Calculus
+topic,calculus,Semantic,0.8,0.905211635630449,1.0,192,Calculus | Calculus | Advanced Calculus
+topic,calculus,Hybrid,1.0,1.0,1.0,192,"A Tour of the Calculus | L'Affaire Tournesol / Calculus Affair (Tintin) | Neveryona, or: The Tale of Signs and Cities : Some Informal Remarks Towards the Modular Calculus, Part Four"
+topic,artificial intelligence,BM25,1.0,1.0,1.0,179,Proceedings | Proceedings of the Twelfth National Conference on Artificial Intelligence | Proceedings of the Twenty-third AAAI Conference on Artificial Intelligence and the Twentieth Innovative Applications of Artificial Intelligence Conference
+topic,artificial intelligence,Semantic,0.8,0.7917063341896681,1.0,179,Artificial Intelligence | Abstraktion und Einfühlung | Artificial Intelligence: Modern Approach
+topic,artificial intelligence,Hybrid,1.0,1.0,1.0,179,Man-Made Minds: The Promise of Artificial Intelligence | Ai: The Tumultuous History of the Search for Artificial Intelligence | Artificial Intelligence

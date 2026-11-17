@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} · Smart Library reader</title>
+    {% include '_theme_head.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="reader-body">
+<main class="page pdf-page">
+    <header class="reader-head">
+        <a href="/" class="home-link reader-brand">Smart Library</a>
+        {% include '_nav.html' %}
+        <h1>{{ title }}</h1>
+        <p class="author">Free, openly licensed textbook</p>
+    </header>
+
+    <div class="reader-tools pdf-tools">
+        <span class="reader-progress" id="pdf-status">Loading the book… large textbooks can take a moment the first time.</span>
+        <a class="tool-btn" href="/pdf/{{ pid }}" target="_blank" rel="noopener">Open full screen ↗</a>
+        <a class="tool-btn" href="{{ source }}" target="_blank" rel="noopener">About this book ↗</a>
+    </div>
+
+    <iframe class="pdf-frame" id="pdf-frame" src="/pdf/{{ pid }}" title="{{ title }}"></iframe>
+    <p class="reader-credit">Openly licensed textbook from the <a href="{{ source }}" target="_blank" rel="noopener">Open Textbook Library</a>.</p>
+</main>
+<script src="{{ url_for('static', filename='shelf.js') }}"></script>
+<script>
+  document.getElementById('pdf-frame').addEventListener('load', () => {
+    document.getElementById('pdf-status').textContent = 'Use the controls inside the book to zoom, search and turn pages.';
+  });
+</script>
+</body>
+</html>

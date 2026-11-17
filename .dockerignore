@@ -1,0 +1,16 @@
+# never copied into the website image
+.git
+.github
+venv
+__pycache__
+*.pyc
+*.zip
+instance
+data/processed
+data/raw
+data/cache
+data/sources/otl_pages
+data/sources/gutenberg.csv
+src/notebooks
+tests
+Get-Command
