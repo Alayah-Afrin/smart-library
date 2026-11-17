@@ -22,6 +22,8 @@ jobs:
           HF_SPACE: ${{ vars.HF_SPACE }}
         run: |
           if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE" ]; then
-            echo "Set the HF_TOKEN secret and HF_SPACE variable in the repo settings first."; exit 1
+            # not set up yet: skip without failing, so GitHub doesn't show an error on every upload
+            echo "::notice::Hugging Face isn't connected yet (HF_TOKEN secret / HF_SPACE variable missing) - skipping publish."
+            exit 0
           fi
           git push --force "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" HEAD:main
