@@ -8,7 +8,6 @@ import math
 import heapq
 import itertools
 import faiss
-from rank_bm25 import BM25Okapi
 from rapidfuzz import fuzz, process, utils
 from rapidfuzz.distance import DamerauLevenshtein
 from sentence_transformers import SentenceTransformer
@@ -20,6 +19,7 @@ from collections import Counter
 
 
 spell = SpellChecker()
+spell_quick = SpellChecker(distance=1)   # the last-resort correction: 1 wrong letter (2 is very slow)
 
 ENABLE_LIVE_SUPPLEMENT = True          # set False to turn off the "Also found online" section
 LIVE_LABEL = 'Also found online (Open Library)'
@@ -67,7 +67,7 @@ def correct_query(query, vocab=None):
     def fix(w):
         if len(w) <= 2 or (vocab and fold(w) in vocab):
             return w
-        c = spell.correction(w)
+        c = spell_quick.correction(w)
         # accept only a word our books actually contain, and only if it is close to what was typed:
         # "calculas" -> calculus yes; "frodo" -> "fordo" no (no book has it); "zxcv" -> "zach" no (not close)
         if c and (not vocab or fold(c) in vocab) and fuzz.ratio(fold(w), fold(c)) >= 80:
@@ -138,6 +138,47 @@ def to_isbn13(isbn):
         return None
     total = sum(int(d) * (1 if i % 2 == 0 else 3) for i, d in enumerate(core))
     return core + str((10 - total % 10) % 10)
+
+
+class FastBM25:
+    """The same scores as rank_bm25.BM25Okapi (k1=1.5, b=0.75, epsilon=0.25), but each query word only
+    touches the books that contain it (an index built once) instead of looping over all 500,000 books in
+    Python on every search: ~0.35 s -> a few ms. Also uses far less memory than 500,000 small dicts."""
+
+    def __init__(self, corpus, k1=1.5, b=0.75, epsilon=0.25):
+        self.k1, self.b = k1, b
+        self.n = len(corpus)
+        self.doc_len = np.fromiter((len(d) for d in corpus), dtype=np.float32, count=self.n)
+        self.avgdl = float(self.doc_len.mean()) if self.n else 1.0
+        ids, tfs = {}, {}
+        for i, doc in enumerate(corpus):
+            for w, c in Counter(doc).items():
+                ids.setdefault(w, []).append(i)
+                tfs.setdefault(w, []).append(c)
+        self.postings = {w: (np.asarray(ids[w], dtype=np.int32), np.asarray(tfs[w], dtype=np.float32)) for w in ids}
+        del ids, tfs
+        idf, negative, total = {}, [], 0.0
+        for w, (d, _) in self.postings.items():
+            v = math.log(self.n - len(d) + 0.5) - math.log(len(d) + 0.5)
+            idf[w] = v
+            total += v
+            if v < 0:
+                negative.append(w)
+        eps = epsilon * (total / len(idf) if idf else 0)
+        for w in negative:
+            idf[w] = eps
+        self.idf = idf
+        self.norm = (self.k1 * (1 - self.b + self.b * self.doc_len / self.avgdl)).astype(np.float32)
+
+    def get_scores(self, query):
+        score = np.zeros(self.n, dtype=np.float64)
+        for q in query:
+            hit = self.postings.get(q)
+            if hit is None:
+                continue
+            d, tf = hit
+            score[d] += self.idf[q] * (tf * (self.k1 + 1) / (tf + self.norm[d]))
+        return score
 
 
 # ---------- loading ----------
@@ -261,7 +302,7 @@ def load_search_system(data_dir):
         work_dedup[col] = work_dedup[col].str.replace('�', '', regex=False)
 
     tokenized_corpus = [text.split() for text in work_dedup['search_text']]
-    bm25 = BM25Okapi(tokenized_corpus)
+    bm25 = FastBM25(tokenized_corpus)
     word_counts = Counter(w for doc in tokenized_corpus for w in set(doc))
     vocab = {w for w, c in word_counts.items() if c >= 3}   # words seen in at least 3 books
 
@@ -310,6 +351,23 @@ def load_search_system(data_dir):
     title_list = [t for t in work_dedup['title'].dropna().unique().tolist() if len(t) >= 4]
     author_proc = [proc(a) for a in author_list]
     title_proc = [proc(t) for t in title_list]
+    # word -> titles that contain it (lets the closest-title check skip unrelated titles)
+    tw_lists = {}
+    for i, t in enumerate(title_proc):
+        for w in set(t.split()):
+            if len(w) >= 3:
+                tw_lists.setdefault(w, []).append(i)
+    title_word_ids = {w: np.asarray(v, dtype=np.int32) for w, v in tw_lists.items()}
+    title_words = sorted(title_word_ids)
+    del tw_lists
+    aw_lists = {}
+    for i, a in enumerate(author_proc):
+        for w in set(a.split()):
+            if len(w) >= 3:
+                aw_lists.setdefault(w, []).append(i)
+    author_word_ids = {w: np.asarray(v, dtype=np.int32) for w, v in aw_lists.items()}
+    author_words = sorted(author_word_ids)
+    del aw_lists
 
     work_dedup['surname'] = [fold(a.split()[-1]) if a.split() else '' for a in work_dedup['author_norm'].fillna('')]
     surname_list = [s for s in work_dedup['surname'].unique() if len(s) >= 4 and s != 'author']
@@ -339,7 +397,20 @@ def load_search_system(data_dir):
     author_display = ranked_authors.drop_duplicates('author_norm').set_index('author_norm')['author'].to_dict()
     author_norm_of = work_dedup.drop_duplicates('author').set_index('author')['author_norm'].to_dict()
 
+    # numbers that are the same for every search: computed once here, not on each search
+    rc = work_dedup['rating_count'].fillna(0).to_numpy(dtype=np.float64)
+    pop_norm_all = np.log1p(rc) / np.log1p(rc.max()) if rc.max() > 0 else np.zeros(len(work_dedup))
+    has_read_all = (work_dedup['read_url'] != '').to_numpy() if 'read_url' in work_dedup.columns         else np.zeros(len(work_dedup), dtype=bool)
+    rows_by_isbn = {}                                   # isbn -> row numbers in work_dedup (for meaning scores)
+    for i, isbn in enumerate(work_dedup['isbn13'].tolist()):
+        if isinstance(isbn, str):
+            rows_by_isbn.setdefault(isbn, []).append(i)
+    rows_by_isbn = {k: np.asarray(v, dtype=np.int64) for k, v in rows_by_isbn.items()}
+
     return {
+        'pop_norm': pop_norm_all, 'has_read': has_read_all, 'rows_by_isbn': rows_by_isbn,
+        'title_word_ids': title_word_ids, 'title_words': title_words,
+        'author_word_ids': author_word_ids, 'author_words': author_words,
         'books': books, 'work_dedup': work_dedup, 'embeddings': embeddings,
         'bm25': bm25, 'faiss_index': faiss_index, 'model_embed': model_embed,
         'isbn13_by_position': isbn13_by_position,
@@ -905,7 +976,9 @@ def phrase_guesses(sys, query, keep=3):
     q_sound = _phrase_sound(query)
     if len(q_sound.replace(' ', '')) < 5:
         return []
-    pop = sys['work_dedup'].drop_duplicates('title').set_index('title')['rating_count'].to_dict()
+    pop = sys.get('title_pop')
+    if pop is None:                               # built once, then reused (it covers all 500,000 books)
+        pop = sys['title_pop'] = sys['work_dedup'].drop_duplicates('title').set_index('title')['rating_count'].to_dict()
     fame = sys['author_fame']
     scored = []
     for kind in ('title', 'author'):
@@ -925,15 +998,42 @@ def phrase_guesses(sys, query, keep=3):
     return out
 
 
+def sharing_ids(sys, kind, pq):
+    """Titles / author names that have a word starting with the same 2 letters as a typed word, or None
+    when nothing narrows it down (then everything is compared). A close match always shares a word start."""
+    # first 2 letters: a typo from the 3rd letter on still matches ("rolling" -> Rowling)
+    keys = {w[:2] for w in pq.split() if len(w) >= 3 and w not in STOPWORDS}
+    if not keys:
+        return None
+    ids_of, words = sys[kind + '_word_ids'], sys[kind + '_words']
+    found = []
+    for k in keys:
+        lo, hi = bisect.bisect_left(words, k), bisect.bisect_left(words, k + '￿')
+        found.extend(ids_of[w] for w in words[lo:hi])
+    if not found:
+        return None
+    ids = np.unique(np.concatenate(found))
+    total = len(sys['title_proc'] if kind == 'title' else sys['author_proc'])
+    return ids if len(ids) < 0.5 * total else None
+
+
 def closest_title(sys, q, cutoff=0):
     """Closest catalog title -> (title_proc, score, index) or None. Compares in word order AND with the words
     sorted, and keeps the better: sorting alone breaks on a typo that changes the order
-    ("gone with the wnd": sorted "...with wnd" vs "...wind with" scores 74; in order it is 97)."""
+    ("gone with the wnd": sorted "...with wnd" vs "...wind with" scores 74; in order it is 97).
+    Speed: only titles that have a word starting with the same 3 letters as a typed word are compared
+    (a close title always shares words with the query); all titles only when there is no such title."""
     pq = proc(q)
-    a = process.extractOne(pq, sys['title_proc'], scorer=fuzz.token_sort_ratio, score_cutoff=cutoff)
-    b = process.extractOne(pq, sys['title_proc'], scorer=fuzz.ratio, score_cutoff=cutoff)
+    titles = sys['title_proc']
+    cand = sharing_ids(sys, 'title', pq)
+    pool = titles if cand is None else [titles[i] for i in cand]
+    a = process.extractOne(pq, pool, scorer=fuzz.token_sort_ratio, score_cutoff=cutoff)
+    b = process.extractOne(pq, pool, scorer=fuzz.ratio, score_cutoff=cutoff)
     found = [x for x in (a, b) if x]
-    return max(found, key=lambda x: x[1]) if found else None
+    if not found:
+        return None
+    best = max(found, key=lambda x: x[1])
+    return best if cand is None else (best[0], best[1], int(cand[best[2]]))
 
 
 def understand_query(original_query, sys, _fixed=False):
@@ -1015,7 +1115,11 @@ def understand_query(original_query, sys, _fixed=False):
                         'corrected': False, 'said': q, 'also_title': None, 'also_authors': []}
 
     if looks_like_name and not everyday_word:
-        matches = process.extract(proc(q), sys['author_proc'], scorer=fuzz.token_sort_ratio, limit=8)
+        a_cand = sharing_ids(sys, 'author', proc(q))           # only names sharing a word start (much faster)
+        a_pool = sys['author_proc'] if a_cand is None else [sys['author_proc'][i] for i in a_cand]
+        a_map = (lambda i: i) if a_cand is None else (lambda i: int(a_cand[i]))
+        matches = [(m, sc, a_map(i)) for m, sc, i in
+                   process.extract(proc(q), a_pool, scorer=fuzz.token_sort_ratio, limit=8)]
         strong = [(sys['author_list'][i], s) for _, s, i in matches if s >= 85]
         # names that contain every typed word ("garcia marquez" -> Gabriel Garcia Marquez,
         # "ronald tolkien" -> John Ronald Reuel Tolkien), when the typed last word is a known surname
@@ -1023,9 +1127,9 @@ def understand_query(original_query, sys, _fixed=False):
         typed_last = proc(q).split()[-1] if proc(q).split() else ''
         if n >= 2 and typed_last in sys['authors_by_name'] and title_score < 85:   # not "harry potter", "artificial intelligence"
             typed_set = set(proc(q).split())
-            full = [sys['author_list'][i] for _, _, i in process.extract(
-                proc(q), sys['author_proc'], scorer=fuzz.token_set_ratio, score_cutoff=100, limit=8)
-                if typed_set <= set(sys['author_proc'][i].split())]   # the name has EVERY typed word ("Jackson" is not "percy jackson")
+            full = [sys['author_list'][a_map(i)] for _, _, i in process.extract(
+                proc(q), a_pool, scorer=fuzz.token_set_ratio, score_cutoff=100, limit=8)
+                if typed_set <= set(sys['author_proc'][a_map(i)].split())]   # the name has EVERY typed word ("Jackson" is not "percy jackson")
         if (strong and strong[0][1] >= title_score) or full:
             top = strong[0][1] if strong else 100
             tied = [a for a, s in strong if s >= top - 5] + full    # equally good spellings of the name
@@ -1199,7 +1303,13 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
         isbn = isbn13_by_position[idx]
         if cos >= RELATED_COS and isinstance(isbn, str):     # books without an ISBN can't be matched back (NaN key bug)
             near_cos[isbn] = max(cos, near_cos.get(isbn, 0))
-    semantic_cos = work_dedup['isbn13'].map(near_cos).fillna(0)
+    rows_by_isbn = sys['rows_by_isbn']
+    sem = np.zeros(len(work_dedup))
+    for isbn, cos in near_cos.items():
+        rows = rows_by_isbn.get(isbn)
+        if rows is not None:
+            sem[rows] = cos
+    semantic_cos = pd.Series(sem, index=work_dedup.index)
 
     faiss_score_by_isbn = {}
     for idx, dist in zip(faiss_indices[0], distances[0]):
@@ -1210,13 +1320,16 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
         if isbn not in faiss_score_by_isbn or sim > faiss_score_by_isbn[isbn]:
             faiss_score_by_isbn[isbn] = sim
 
-    faiss_scores = work_dedup['isbn13'].map(faiss_score_by_isbn).fillna(0).values
+    faiss_scores = np.zeros(len(work_dedup))
+    for isbn, sim in faiss_score_by_isbn.items():
+        rows = rows_by_isbn.get(isbn)
+        if rows is not None:
+            faiss_scores[rows] = sim
 
     max_bm25 = bm25_scores.max() if bm25_scores.max() > 0 else 1
     bm25_norm = bm25_scores / max_bm25
 
-    max_pop = work_dedup['rating_count'].max()
-    pop_norm = np.log1p(work_dedup['rating_count']) / np.log1p(max_pop) if max_pop > 0 else np.zeros(len(work_dedup))
+    pop_norm = sys['pop_norm']
 
     word_count = len(query.split())
     if word_count >= 5:
@@ -1283,13 +1396,24 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
         word_related = (bm25.get_scores(q_words) > 0) if q_words else np.zeros(len(work_dedup), dtype=bool)
     related = pd.Series(word_related, index=work_dedup.index) | title_hit | author_hit | (semantic_cos >= RELATED_COS)
 
-    combined_scores = (bm25_weight * bm25_norm) + (faiss_weight * faiss_scores) + (pop_weight * pop_norm) + (0.40 * primary_hit.values) + (0.10 * (work_dedup['read_url'] != '').values)
+    combined_scores = np.asarray((bm25_weight * bm25_norm) + (faiss_weight * faiss_scores) + (pop_weight * pop_norm)
+                                 + (0.40 * primary_hit.values) + (0.10 * sys['has_read']), dtype=np.float64)
     common_words = {'a', 'the', 'book', 'about', 'story', 'something', 'like', 'that'}
     query_words = set(query.lower().split())
     looks_like_name_query = len(query.split()) <= 4 and len(query) >= 4 and not (query_words & common_words)
 
-    results = work_dedup.copy()
-    results['score'] = combined_scores
+    # Only books that can appear on the page are copied and sorted: the best-scoring few thousand, every exact
+    # title/author match (they are listed by popularity in their sections), the books close in meaning, and -
+    # with a filter on - every related book. Same results as sorting all 500,000 books, much faster.
+    keep_n = min(4000, len(combined_scores))
+    parts = [np.argpartition(-combined_scores, keep_n - 1)[:keep_n] if keep_n else EMPTY_IDS.astype(np.int64),
+             np.flatnonzero(title_hit.to_numpy()), np.flatnonzero(author_hit.to_numpy()),
+             np.flatnonzero(sem >= RELATED_COS)]
+    if filters_on:
+        parts.append(np.flatnonzero(related.to_numpy()))
+    pool = np.unique(np.concatenate([np.asarray(x, dtype=np.int64) for x in parts]))
+    results = work_dedup.iloc[pool].copy()
+    results['score'] = combined_scores[pool]
 
     suggestion = None
     if combined_scores.max() < 0.15:
@@ -1342,7 +1466,8 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
             np.where(author_hit[results.index], AUTHOR_LABEL, '')
         )
 
-    ranked = results.sort_values('score', ascending=False).drop_duplicates('dedup_key')
+    # stable sort: books with exactly equal scores keep catalog order, so the page is the same every time
+    ranked = results.sort_values('score', ascending=False, kind='stable').drop_duplicates('dedup_key')
     ranked = ranked.assign(rank_pop=ranked['n_ratings'] + 50 * (ranked['read_url'] != ''))
     if sectioned:
         t_all = ranked[ranked['section'] == TITLE_LABEL].sort_values(['n_ratings', 'rating_count'], ascending=False)

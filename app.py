@@ -16,6 +16,9 @@ import pdfs
 import fetch_data
 
 app = Flask(__name__)
+# Browsers keep style/script files for an hour instead of asking again on every page
+# (each extra request costs ~0.5 s through the Cloudflare tunnel).
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 3600
 
 
 def _secret_key():
