@@ -6,8 +6,8 @@
             <img src="{{ book.cover_url }}{% if 'openlibrary.org/b/isbn' in book.cover_url %}?default=false{% endif %}"
                  alt="" loading="lazy"
                  onload="if (this.naturalWidth < 20) this.onerror();"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="no-cover" style="display:none;"><span>{{ book.title }}</span></div>
+                 onerror="this.style.display='none';">
+            <div class="no-cover"><span>{{ book.title }}</span></div>
         {% else %}
             <div class="no-cover"><span>{{ book.title }}</span></div>
         {% endif %}
@@ -41,13 +41,17 @@
 
     <div class="card-foot">
         {% if book.reader_id %}
-        <a class="btn-primary" href="/read/{{ book.reader_id }}">Read here</a>
+        <a class="btn-primary" href="/read/{{ book.reader_id }}" title="Free. Opens the whole book right here on Smart Library">Read now</a>
+        <span class="access-note access-here">Free · reads on this site</span>
         {% elif book.pdf_id is not none %}
-        <a class="btn-primary" href="/read/pdf/{{ book.pdf_id }}">Read here</a>
+        <a class="btn-primary" href="/read/pdf/{{ book.pdf_id }}" title="Free textbook. Opens right here on Smart Library">Read now</a>
+        <span class="access-note access-here">Free textbook · reads on this site</span>
         {% elif is_free %}
-        <a class="btn-primary" href="{{ book.read_url }}" target="_blank" rel="noopener" title="Opens the free copy on the publisher's site">Read free ↗</a>
+        <a class="btn-primary btn-out" href="{{ book.read_url }}" target="_blank" rel="noopener" title="Free and legal. Opens on the publisher's website in a new tab">Open free copy ↗</a>
+        <span class="access-note">Free · on the publisher's site</span>
         {% else %}
-        <a class="btn-secondary" href="{% if book.ol_key %}https://openlibrary.org{{ book.ol_key }}{% elif book.isbn13 %}https://openlibrary.org/isbn/{{ book.isbn13 }}{% else %}https://openlibrary.org/search?q={{ book.title|urlencode }}{% endif %}" target="_blank" rel="noopener">Read or borrow ↗</a>
+        <a class="btn-secondary" href="{% if book.ol_key %}https://openlibrary.org{{ book.ol_key }}{% elif book.isbn13 %}https://openlibrary.org/isbn/{{ book.isbn13 }}{% else %}https://openlibrary.org/search?q={{ book.title|urlencode }}{% endif %}" target="_blank" rel="noopener" title="Not free here. Open Library shows where to borrow or buy it">Find a copy ↗</a>
+        <span class="access-note access-paid">Borrow or buy · Open Library</span>
         {% endif %}
         <div class="card-secondary">
             <button type="button" class="summary-btn"

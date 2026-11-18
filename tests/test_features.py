@@ -325,7 +325,7 @@ cards = res_html.split('<article class="book-card">')[1:]
 check('each card has exactly one read button (no duplicate free link)', lambda: (
     len(cards) > 0 and all(card.count('class="btn-primary"') + card.count('class="btn-secondary"') == 1 for card in cards)
     and 'chip-link' not in res_html, f'{len(cards)} cards'))
-check('textbook card says "Read free" (opens publisher site)', lambda: (lambda h: ('Read free ↗' in h, 'no Read free button'))(
+check('textbook card says "Open free copy" (opens publisher site)', lambda: (lambda h: ('Open free copy ↗' in h, 'no Open free copy button'))(
     c.get('/?q=linear+algebra&free=1').get_data(as_text=True)))
 # ---- regressions found by the wide query check ----
 check('"jk" finds J.K. Rowling (initials)', lambda: (lambda d, b: (len(d) >= 10 and (d['author'].str.contains('Rowling').mean() > 0.8), d['author'].head(3).tolist()))(*search('jk')))

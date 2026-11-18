@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 HF_HOME=/opt/hf-cache PORT=7860
 
 # 1. libraries (CPU-only torch: no GPU on the free tier, and ~4x smaller)
 COPY requirements.txt /tmp/requirements.txt
-RUN pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1 \
+RUN pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.0 \
  && pip install -r /tmp/requirements.txt
 
 # 2. download the two AI models now, so visitors never wait for them

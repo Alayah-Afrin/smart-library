@@ -24,6 +24,7 @@
         <div class="results" id="shelf-list"></div>
     </section>
     <p class="empty-state" id="shelf-empty" hidden>Your shelf is empty. Tap <b>♡ Save</b> on any book to keep it here.</p>
+    <footer class="site-foot">Free books from Project Gutenberg, OpenStax, Open Textbook Library, DOAB and free-programming-books. Book data from Open Library.</footer>
 </main>
 
 <script src="{{ url_for('static', filename='shelf.js') }}"></script>
@@ -48,14 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const actions = el('div', 'actions');
     if (b.pdf) {
-      const a = el('a', 'read-free', 'Read here'); a.href = '/read/pdf/' + encodeURIComponent(b.pdf);
+      const a = el('a', 'read-free', 'Read now'); a.href = '/read/pdf/' + encodeURIComponent(b.pdf);
       actions.appendChild(a);
     } else if (b.reader) {
-      const a = el('a', 'read-free', b.progress ? 'Continue' : 'Read here');
+      const a = el('a', 'read-free', b.progress ? 'Continue' : 'Read now');
       a.href = '/read/' + encodeURIComponent(b.reader) + (b.progress ? '?page=' + b.progress : '');
       actions.appendChild(a);
     } else if (b.read) {
-      const a = el('a', 'read-free', 'Read free ↗'); a.href = b.read; a.target = '_blank'; a.rel = 'noopener';
+      const a = el('a', 'read-free', 'Open free copy ↗'); a.href = b.read; a.target = '_blank'; a.rel = 'noopener';
       actions.appendChild(a);
     }
     const rm = el('button', 'summary-btn', 'Remove'); rm.type = 'button';

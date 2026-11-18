@@ -6,13 +6,13 @@ colorTo: red
 sdk: docker
 app_port: 7860
 pinned: false
-short_description: Hybrid AI book search with 65,000+ free legal books
+short_description: AI book search with 80,000+ free legal books
 ---
 
 # Smart Library
 
 A book search and reading website for students. It understands what you mean, not just the exact words you type,
-and lets you read 65,000+ free, legal books right on the site.
+and lets you read 80,000+ free, legal books (stories, textbooks, research and programming books).
 
 ## What it does
 
@@ -25,7 +25,7 @@ and lets you read 65,000+ free, legal books right on the site.
 - Honest messages when nothing matches, filters (category, free to read) that always apply.
 
 **Free books, read on the site**
-- 65,000+ public-domain and openly licensed books (Project Gutenberg, Open Textbook Library, OpenStax).
+- 80,000+ public-domain and openly licensed books (Project Gutenberg, OpenStax, Open Textbook Library, DOAB academic books, free-programming-books), plus 19,000 newer books (2005–2026) with links to borrow them.
 - In-site reader with pages, text size and night mode; textbook PDFs open inside the page.
 
 **Readers**

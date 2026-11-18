@@ -91,13 +91,13 @@ author_typo,dan broun,Semantic,0.0,0.0,0.0,30,Chump Change | Daniel | Outtakes: 
 author_typo,dan broun,Hybrid,1.0,0.8603818544462508,1.0,30,Angels & Demons | Digital Fortress : A Thriller | El Codigo Da Vinci / The Da Vinci Code
 topic,a book about loneliness,BM25,1.0,1.0,1.0,681,The Well of Loneliness | Facing Loneliness | The Wizard of Loneliness
 topic,a book about loneliness,Semantic,1.0,1.0,1.0,681,Loneliness | Loneliness | Loneliness: the experience of emotional and social isolation
-topic,a book about loneliness,Hybrid,1.0,1.0,1.0,681,Loneliness | Children of loneliness | Mr. Loneliness
+topic,a book about loneliness,Hybrid,0.8,0.7799082337019198,0.5,681,Tears of the Moon | さびしすぎてレズ風俗に行きましたレポ | The lonely city
 topic,neural networks,BM25,1.0,1.0,1.0,475,Complex-Valued Neural Networks | Neural Networks and Deep Learning | Make your own neural network
 topic,neural networks,Semantic,0.8,0.7799082337019198,0.5,475,Abstraktion und Einfühlung | Applied Artificial Neural Networks | Machine Learning - A Journey To Deep Learning: With Exercises And Answers
-topic,neural networks,Hybrid,1.0,1.0,1.0,475,Make your own neural network | Neural Networks and Deep Learning | Advanced Applications for Artificial Neural Networks
+topic,neural networks,Hybrid,1.0,1.0,1.0,475,Neural Networks and Deep Learning | Advanced Applications for Artificial Neural Networks | Neural Networks and Deep Learning
 topic,machine learning,BM25,1.0,1.0,1.0,829,Machine Learning | Machine Learning | Machine Learning
 topic,machine learning,Semantic,1.0,0.9305687780632227,1.0,829,"Machine Learning | Automated Machine Learning - Methods, Systems, Challenges | Understanding Machine Learning"
-topic,machine learning,Hybrid,1.0,1.0,1.0,829,Introduction to Machine Learning with Python | Machine learning | The Hundred-Page Machine Learning Book
+topic,machine learning,Hybrid,1.0,1.0,1.0,829,Machine Learning | Machine Learning for Beginners | Approaching Almost Any Machine Learning Problem
 topic,world war two,BM25,1.0,0.9363792118010481,1.0,795,World War Two | The World War Two Reader | World War II and Two Occupations
 topic,world war two,Semantic,1.0,1.0,1.0,795,World War Two | Great Campaigns of World War II | Second World War
 topic,world war two,Hybrid,1.0,1.0,1.0,795,World War Two | The World War Two Reader | World War II and Two Occupations
@@ -127,7 +127,7 @@ topic,history of ancient rome,Semantic,0.8,0.8899541168509599,1.0,2697,History o
 topic,history of ancient rome,Hybrid,1.0,1.0,1.0,2697,History of Ancient Rome | A brief history of ancient Rome | The Beginnings of Rome: Italy and Rome from the Bronze Age to the Punic Wars (C. 1000-264 Bc) (Routledge History of the Ancient World)
 topic,calculus,BM25,1.0,1.0,1.0,254,The Calculus Wars | Calculus Companion to Accompany Calculus | Vector Calculus
 topic,calculus,Semantic,0.8,0.905211635630449,1.0,254,Calculus | Calculus | Advanced Calculus
-topic,calculus,Hybrid,1.0,1.0,1.0,254,"A Tour of the Calculus | L'Affaire Tournesol / Calculus Affair (Tintin) | Neveryona, or: The Tale of Signs and Cities : Some Informal Remarks Towards the Modular Calculus, Part Four"
+topic,calculus,Hybrid,1.0,1.0,1.0,254,Calculus | Active Calculus | Vector Calculus
 topic,artificial intelligence,BM25,1.0,1.0,1.0,520,Proceedings | Proceedings of the Twelfth National Conference on Artificial Intelligence | Proceedings of the Twenty-third AAAI Conference on Artificial Intelligence and the Twentieth Innovative Applications of Artificial Intelligence Conference
 topic,artificial intelligence,Semantic,0.8,0.8611375561264454,1.0,520,Artificial Intelligence | Abstraktion und Einfühlung | Artificial Intelligence: Modern Approach
 topic,artificial intelligence,Hybrid,1.0,1.0,1.0,520,Man-Made Minds: The Promise of Artificial Intelligence | Ai: The Tumultuous History of the Search for Artificial Intelligence | Artificial Intelligence and Intelligent Systems

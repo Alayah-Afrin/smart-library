@@ -59,9 +59,9 @@
             <div class="why">{% for w in pick.why.split('|') %}<span class="chip{% if w == 'Free to read' %} chip-free{% endif %}">{{ w }}</span>{% endfor %}</div>
             <div class="actions pick-actions">
                 {% if pick.reader_id %}
-                <a class="read-free" href="/read/{{ pick.reader_id }}">Read here</a>
+                <a class="read-free" href="/read/{{ pick.reader_id }}">Read now</a>
                 {% else %}
-                <a class="read-free" href="{{ pick.read_url }}" target="_blank" rel="noopener">Read free ↗</a>
+                <a class="read-free" href="{{ pick.read_url }}" target="_blank" rel="noopener">Open free copy ↗</a>
                 {% endif %}
                 {% if pick.book_key %}
                 <button type="button" class="save-btn" aria-pressed="false"
@@ -112,6 +112,7 @@
         {% endif %}
     {% endif %}
 
+    <footer class="site-foot">Free books from Project Gutenberg, OpenStax, Open Textbook Library, DOAB and free-programming-books. Book data from Open Library.</footer>
 </main>
 
 <div id="drawer-backdrop" class="drawer-backdrop"></div>
@@ -203,9 +204,9 @@ function openDrawer(d) {
   document.getElementById('drawer-title').textContent = d.title;
   document.getElementById('drawer-author').textContent = d.author;
   const readLink = document.getElementById('drawer-read');
-  if (d.pdf) { readLink.href = '/read/pdf/' + d.pdf; readLink.target = ''; readLink.textContent = 'Read here'; readLink.style.display = 'inline-block'; }
-  else if (d.reader) { readLink.href = '/read/' + d.reader; readLink.target = ''; readLink.textContent = 'Read here'; readLink.style.display = 'inline-block'; }
-  else if (d.read) { readLink.href = d.read; readLink.target = '_blank'; readLink.textContent = 'Read free ↗'; readLink.style.display = 'inline-block'; }
+  if (d.pdf) { readLink.href = '/read/pdf/' + d.pdf; readLink.target = ''; readLink.textContent = 'Read now'; readLink.style.display = 'inline-block'; }
+  else if (d.reader) { readLink.href = '/read/' + d.reader; readLink.target = ''; readLink.textContent = 'Read now'; readLink.style.display = 'inline-block'; }
+  else if (d.read) { readLink.href = d.read; readLink.target = '_blank'; readLink.textContent = 'Open free copy ↗'; readLink.style.display = 'inline-block'; }
   else { readLink.style.display = 'none'; }
   drawer.classList.add('open');
   backdrop.classList.add('open');
@@ -228,9 +229,9 @@ function openFlyout(btn) {
   if (d.pdf || d.reader || d.read) {
     const a = document.createElement('a');
     a.className = 'read-free';
-    if (d.pdf) { a.href = '/read/pdf/' + d.pdf; a.textContent = 'Read here'; }
-    else if (d.reader) { a.href = '/read/' + d.reader; a.textContent = 'Read here'; }
-    else { a.href = d.read; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Read free ↗'; }
+    if (d.pdf) { a.href = '/read/pdf/' + d.pdf; a.textContent = 'Read now'; }
+    else if (d.reader) { a.href = '/read/' + d.reader; a.textContent = 'Read now'; }
+    else { a.href = d.read; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open free copy ↗'; }
     f.appendChild(a);
   }
   const comm = document.createElement('div');

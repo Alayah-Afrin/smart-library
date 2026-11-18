@@ -100,6 +100,18 @@ def in_category(df, group):
         mask &= ~cats.str.contains(NOT_ACADEMIC, case=False, regex=True)
     return df[mask]
 
+# words that make a query a study subject (free textbooks first, novels that share the word last)
+STUDY_WORDS = (r'\b(calculus|algebra|geometry|trigonometry|statistics|probability|mathematics|math|physics|'
+               r'chemistry|biology|economics|accounting|programming|python|java|javascript|algorithms?|'
+               r'database|networking|engineering|anatomy|physiology|psychology|sociology|microeconomics|'
+               r'macroeconomics|thermodynamics|mechanics|electronics|circuits|machine learning)\b')
+
+# keys next to each other on a QWERTY keyboard: a wrong FIRST letter is usually one of these
+KEY_NEIGHBOURS = {'q': 'wa', 'w': 'qeas', 'e': 'wrsd', 'r': 'etdf', 't': 'ryfg', 'y': 'tugh', 'u': 'yihj',
+                  'i': 'uojk', 'o': 'ipkl', 'p': 'ol', 'a': 'qwsz', 's': 'awedxz', 'd': 'serfcx', 'f': 'drtgvc',
+                  'g': 'ftyhbv', 'h': 'gyujnb', 'j': 'huikmn', 'k': 'jiolm', 'l': 'kop', 'z': 'asx', 'x': 'zsdc',
+                  'c': 'xdfv', 'v': 'cfgb', 'b': 'vghn', 'n': 'bhjm', 'm': 'njk'}
+
 STOPWORDS = {'a', 'an', 'the', 'give', 'me', 'for', 'something', 'like', 'please', 'show', 'find', 'i', 'want', 'to', 'read', 'book', 'books', 'about', 'story', 'stories'}
 
 
@@ -764,7 +776,7 @@ def sounds_like(word):
     return w[:-1] if len(w) > 3 and w.endswith('e') else w   # silent final e
 
 
-def spelling_alternatives(sys, query, keep=3, margin=15):
+def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
     """Every likely meaning of a query that contains misspelled words, most likely first.
 
     A misspelled word is often close to SEVERAL real words: "poter" -> potter AND peter,
@@ -789,6 +801,8 @@ def spelling_alternatives(sys, query, keep=3, margin=15):
         return float(np.partition(p, len(p) - 10)[-10:].sum()) if len(p) > 10 else float(p.sum())
 
     slots = []             # per token: list of (word, edits)
+    slipped = set()        # words reached only through a wrong FIRST key ("orcy" -> percy)
+    pop_of_reading = {}
     known_ids = []         # books for the correctly spelled, meaningful words
     any_typo = False
     for tok in tokens:
@@ -805,18 +819,30 @@ def spelling_alternatives(sys, query, keep=3, margin=15):
         # but the catalog spells it Dostoevsky
         maybe_typo = b not in sys['vocab'] or (len(own_ids) < 20 and not spell.known([b]))
         key = sounds_like(b)
-        for cand, _, _ in (process.extract(b, sys['fix_words'], scorer=fuzz.ratio, score_cutoff=70, limit=60)
-                           if maybe_typo else []):
-            if cand == b or cand[0] != b[0] or cand in STOPWORDS:
+        pool = []
+        if maybe_typo:
+            pool = [c for c, _, _ in process.extract(b, sys['fix_words'], scorer=fuzz.ratio, score_cutoff=70, limit=60)]
+            for k in (KEY_NEIGHBOURS.get(b[0], '') if slips else ''):   # wrong first key: "orcy" -> "prcy" -> percy
+                pool += [c for c, _, _ in process.extract(k + b[1:], sys['fix_words'], scorer=fuzz.ratio,
+                                                          score_cutoff=80, limit=10)]
+        for cand in dict.fromkeys(pool):
+            if cand == b or cand in STOPWORDS:
                 continue
+            neighbour = (slips and cand[0] != b[0] and b[0] in KEY_NEIGHBOURS.get(cand[0], '')
+                         and DamerauLevenshtein.distance(b[1:], cand[1:]) <= _max_edits(b))
+            if cand[0] != b[0] and cand[1:] != b and not neighbour:
+                continue          # first letter kept, unless left out or a key next to it was hit ("orcy" = percy)
             edits = DamerauLevenshtein.distance(b, cand)
-            if edits <= _max_edits(b):
+            if edits <= _max_edits(b) or neighbour:
                 # cost in "wrong letters", plus a little for how different the words look overall, so
                 # equally popular choices go to the closer spelling; a word that SOUNDS the same counts
                 # as much closer ("twilite" sounds like twilight, not twisted)
                 cost = edits + 0.012 * (100 - fuzz.ratio(b, cand))
                 if edits >= 2 and sounds_like(cand) == key:      # only for big typos: 1-letter typos are
                     cost = max(0.5, cost - 1.5)                  # fine already ("christe" is Christie, not Christ)
+                if neighbour:                                    # one slipped key + the rest of the word
+                    cost = DamerauLevenshtein.distance(b[1:], cand[1:]) + 0.5
+                    slipped.add(cand)
                 cands.append((cand, cost, edits))
         # never seen in our books; a real English word is only fixed when a catalog word is 1 letter away
         # (a word in even ONE of our books is real: Sipser, Mankiw, Jurafsky have 1-2 books)
@@ -879,7 +905,9 @@ def spelling_alternatives(sys, query, keep=3, margin=15):
         if ids is not None and len(ids) == 0 and name_pop < 200:
             continue                              # these words never appear together in any book
         score = -25 * edits + 10 * math.log10(1 + max(together, name_pop))
-        scored.append((score, ' '.join(w for w, _ in combo)))
+        reading = ' '.join(w for w, _ in combo)
+        pop_of_reading[reading] = together              # books that really contain all these words
+        scored.append((score, reading))
     if not scored:
         return []
     scored.sort(reverse=True)
@@ -897,12 +925,43 @@ def spelling_alternatives(sys, query, keep=3, margin=15):
         if q not in out and any(fold(w) in sfame and fold(w) != fold(t) for w, t in zip(q.split(), tokens)):
             out.append(q)
             break
+    # a slipped-first-key reading is offered only when it wins, or is read far more ("hary poter" is not
+    # also "gary power"; "orcy jackso" is Percy Jackson)
+    if out:
+        top = pop_of_reading.get(out[0], 0)
+        out = [q for i, q in enumerate(out)
+               if i == 0 or not any(fold(w) in slipped for w in q.split()) or pop_of_reading.get(q, 0) >= 3 * max(top, 1)]
     # what was typed, when the catalog really has it ("harr" = Jonathan Harr), always stays as a choice
     if query not in out and any(q == query for _, q in scored):
         out.append(query)
     if out == [query]:
         return []
     return out[:4]
+
+
+def _mention_index(sys):
+    """Lazily built: row ids of books that have a description, and those descriptions (folded, lowercase)."""
+    if 'desc_ids' not in sys:
+        d = sys['work_dedup']['description'].fillna('')
+        has = np.flatnonzero((d.str.len() > 20).to_numpy())
+        sys['desc_ids'] = has
+        sys['desc_text'] = pd.Series([fold(x) for x in d.iloc[has]], dtype=object)
+    return sys['desc_ids'], sys['desc_text']
+
+
+def mention_ids(sys, phrase):
+    """Books whose description names the phrase ("percy jackson", "narnia", "hermione"): a series or a
+    character that is in no title. Most-read first."""
+    words = re.findall(r'[a-z0-9]+', fold(phrase))
+    if not words or not 1 <= len(words) <= 3 or sum(len(w) for w in words) < 4:
+        return EMPTY_IDS
+    ids, text = _mention_index(sys)
+    pat = r'(?<![a-z0-9])' + r'[\s_]+'.join(re.escape(w) for w in words) + r'(?![a-z0-9])'
+    hit = ids[text.str.contains(pat, regex=True).to_numpy()]
+    if not len(hit):
+        return EMPTY_IDS
+    rc = sys['work_dedup']['rating_count'].fillna(0).to_numpy()[hit]
+    return hit[np.argsort(-rc, kind='stable')]
 
 
 def _top_pop(sys, ids):
@@ -921,15 +980,28 @@ def popular_neighbours(sys, query, keep=2):
     tokens = query.split()
     if not 1 <= len(tokens) <= 4:
         return []
+    words = [fold(t).strip('.,!?;:"()') for t in tokens]
+
+    def together(ws):
+        """Books that contain ALL the (known) words: a swapped word is judged with the rest of the query,
+        so "sherlock holmes" is never offered "sherlock hommes" (no book has both of those)."""
+        ids = None
+        for w in ws:
+            if not (w.isalpha() and len(w) >= 3) or w in STOPWORDS:
+                continue
+            d = docs_with(sys, w)
+            ids = d if ids is None else np.intersect1d(ids, d)
+        return EMPTY_IDS if ids is None else ids
+
     found = []
     for i, tok in enumerate(tokens):
-        b = fold(tok).strip('.,!?;:"()')
+        b = words[i]
         if not (b.isalpha() and len(b) >= 4 and b not in STOPWORDS):
             continue
         own_ids = docs_with(sys, b)
         if not len(own_ids):
             continue                                       # an unknown word is spelling_alternatives' job
-        own_pop = _top_pop(sys, own_ids)
+        own_pop = _top_pop(sys, together(words))
         limit = 1 if len(b) <= 4 else 2
         for cand, _, _ in process.extract(b, sys['fix_words'], scorer=fuzz.ratio, score_cutoff=70, limit=40):
             if cand == b or cand[0] != b[0] or cand in STOPWORDS:
@@ -937,7 +1009,7 @@ def popular_neighbours(sys, query, keep=2):
             edits = DamerauLevenshtein.distance(b, cand)
             if edits > limit or (edits == 2 and cand[:3] != b[:3]):   # hob-bs ~ hob-bit; fro-do is not fyo-dor
                 continue
-            pop = _top_pop(sys, docs_with(sys, cand))
+            pop = _top_pop(sys, together([cand if j == i else w for j, w in enumerate(words)]))
             if pop >= 3 * max(own_pop, 1) and pop >= 100:     # only a link, so a lower bar than replacing
                 swapped = ' '.join(cand if j == i else t for j, t in enumerate(tokens))
                 found.append((pop / (1 + edits), swapped))
@@ -1243,8 +1315,7 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
         if len(by_author) == 0 and len(titles) == 0 and not others and filters_on:
             return author_empty(name)
 
-        who = (f"Did you mean {said}? Showing results for author: {name}" if reading['corrected']
-               else f"Showing results for author: {name}")
+        who = f"Showing results for author: {name}"      # a corrected name ("stfen kng") just shows the real one
         if reading.get('did_you_mean'):                  # "harr": the longer word is offered as a link
             who = f"Did you mean: {reading['did_you_mean']}"
         if len(titles) == 0 and not others:
@@ -1471,6 +1542,19 @@ def _search_core(query, sys, mood_filter=None, category_filter=None, top_k=24, f
     ranked = ranked.assign(rank_pop=ranked['n_ratings'] + 50 * (ranked['read_url'] != ''))
     if sectioned:
         t_all = ranked[ranked['section'] == TITLE_LABEL].sort_values(['n_ratings', 'rating_count'], ascending=False)
+        # A study subject ("calculus", "organic chemistry"): most title matches are textbooks. Then real
+        # textbooks go first, free ones (readable here) at the top, and novels/comics that merely share the
+        # word (Tintin's "Calculus Affair") go last.
+        if len(t_all) >= 6:
+            cats = t_all['categories'].fillna('')
+            acad = cats.str.contains('|'.join(p for g in ACADEMIC_GROUPS for p in CATEGORY_GROUPS[g]), case=False, regex=True)
+            acad &= ~cats.str.contains(NOT_ACADEMIC, case=False, regex=True)
+            fiction = cats.str.contains(NOT_ACADEMIC, case=False, regex=True)
+            study_query = bool(re.search(STUDY_WORDS, ' '.join(q_words)))
+            if study_query or acad.head(20).mean() >= 0.5:
+                free = (t_all['read_url'] != '')
+                key = (~fiction).astype(int) * 2 + (~fiction & free).astype(int)
+                t_all = t_all.assign(_k=key.to_numpy()).sort_values('_k', ascending=False, kind='stable').drop(columns='_k')
         a_all = ranked[ranked['section'] == AUTHOR_LABEL].sort_values(['n_ratings', 'rating_count'], ascending=False)
         # Several comparably popular people with the name ("arthur": Clarke, Conan Doyle, Miller) -> at most
         # 3 books each so all of them show. One clearly dominant person ("jk" -> J.K. Rowling) is not capped.
@@ -1740,6 +1824,44 @@ def isbn_search(isbn, sys):
     return found, f"No book with ISBN {isbn} in our library."
 
 
+def _add_mentions(sys, df, phrase, banner, category_filter=None, free_only=False):
+    """A series or character that is in no title ("percy jackson", "narnia"): add the books whose description
+    names it. When they are read far more than what the normal search found, they go FIRST."""
+    words = [w for w in re.findall(r'[a-z]+', fold(phrase or '')) if w not in STOPWORDS]
+    if not 1 <= len(words) <= 3 or len(''.join(words)) < 4:
+        return df, banner
+    ids = mention_ids(sys, ' '.join(words))
+    if not len(ids):
+        return df, banner
+    m = sys['work_dedup'].iloc[ids[:200]]
+    if category_filter in CATEGORY_GROUPS:
+        m = in_category(m, category_filter)
+    if free_only:
+        m = m[m['read_url'] != '']
+    if 'dedup_key' in df.columns:
+        m = m[~m['dedup_key'].isin(set(df['dedup_key']))]
+    m = m.drop_duplicates('dedup_key').head(8).copy()
+    if not len(m):
+        return df, banner
+    reads = lambda d: float(pd.to_numeric(d['rating_count'], errors='coerce').fillna(0).head(5).sum())         if 'rating_count' in d.columns and len(d) else 0.0
+    m_pop, main_pop = reads(m), reads(df)
+    phrase_hit = len(words) >= 2                              # a whole name like "percy jackson" is very specific
+    if m_pop < 100 or (not phrase_hit and m_pop < 0.5 * main_pop):
+        return df, banner                                    # nothing well known: keep the page as it is
+    nice = ' '.join(w.title() for w in words)
+    m['section'] = f"Books about “{nice}”"
+    if len(df) and ('section' not in df.columns or not df['section'].fillna('').astype(bool).any()):
+        df = df.copy()
+        df['section'] = f"Results for “{phrase.strip()}”"
+    if m_pop >= (1 if phrase_hit else 3) * max(main_pop, 1):
+        df = pd.concat([m, df], ignore_index=True)
+        if (banner or '').startswith(('“', 'No books match')):   # "isn't in our library": it is, under another title
+            banner = f"Showing books about “{nice}”."
+    else:
+        df = pd.concat([df, m.head(6)], ignore_index=True)
+    return df, banner
+
+
 def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False, online=True):
     """Public entry point: tidy the query, expand short forms, run the search, then attach the 'why' chips."""
     query = re.sub(r'(?<=[^\W\d_])[-_/]+(?=[^\W\d_])', ' ', query or '')   # "harry-potter" -> "harry potter"
@@ -1782,6 +1904,23 @@ def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, f
     if alternatives:
         kw = dict(mood_filter=mood_filter, category_filter=category_filter, free_only=free_only)
         df, banner = _search_core(alternatives[0], sys, top_k=top_k, online=online, **kw)
+        if "isn't in our library" in (banner or '') or (banner or '').startswith('No books match'):
+            # last resort: the FIRST letter may be a slipped key ("orcy jackso" = percy jackson)
+            for alt in spelling_alternatives(sys, q, slips=True)[:2]:
+                if alt in alternatives:
+                    continue
+                d2, b2 = _search_core(alt, sys, top_k=top_k, online=online, **kw)
+                if len(d2) and not ("isn't in our library" in (b2 or '') or (b2 or '').startswith('No books match')):
+                    alternatives = [alt] + alternatives
+                    df, banner = d2, b2
+                    break
+        if "isn't in our library" in (banner or '') or (banner or '').startswith('No books match'):
+            for i, alt in enumerate(alternatives[1:], 1):
+                d2, b2 = _search_core(alt, sys, top_k=top_k, online=online, **kw)
+                if len(d2) and not ("isn't in our library" in (b2 or '') or (b2 or '').startswith('No books match')):
+                    alternatives = [alt] + alternatives[:i] + alternatives[i + 1:]
+                    df, banner = d2, b2
+                    break
         if banner and banner.startswith('No books match'):
             banner = None
         shown = set(df['dedup_key']) if 'dedup_key' in df.columns else set()
@@ -1802,7 +1941,10 @@ def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, f
     if alternatives:
         note = '' if alternatives[0] == q else f"Showing results for “{alternatives[0]}”."
         kept = banner if banner and not banner.startswith(('Searched for', 'Did you mean')) else ''
+        if kept.startswith('Showing results for author'):
+            note = ''                                    # the author line already says what is shown
         banner = ' '.join(x for x in (note, kept) if x) or None
+        df, banner = _add_mentions(sys, df, alternatives[0], banner, category_filter, free_only)
         out = add_why(df, alternatives[0], banner, category_filter)
         out.attrs['alternatives'] = alternatives
         return out, banner
@@ -1821,18 +1963,37 @@ def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, f
     if expanded and (not banner or banner.startswith('Searched for')):
         banner = f"Showing results for “{expanded}” ({short.upper()})"
 
+    # "percy grey" -> Zane Grey: the surname fits, the first name does not. Say so, and offer the other meanings.
+    misfit = []
+    if (banner or '').startswith('Showing results for author: ') and not expanded:
+        name = banner[len('Showing results for author: '):]
+        name_words = proc(name).split()
+        for t in q.split():
+            w = fold(t).strip('.,!?;:"()')
+            # a real word (not a typo) that is like no part of the name, and no initial stands for it
+            # ("kathleen rowling" = J. K. Rowling, "ronald tolkien" = J. R. R. Tolkien fit)
+            if (w.isalpha() and len(w) >= 3 and w not in STOPWORDS and name_words and len(docs_with(sys, w))
+                    and max(fuzz.ratio(w, n) for n in name_words) < 70
+                    and not any(len(n) <= 3 and w[0] in n for n in name_words)):
+                misfit.append(w)
+        if misfit and len(misfit) < len(q.split()):
+            banner = f"No author named “{q.strip().title()}”. Showing {name}, the closest name."
+
     # What was typed stays first. Below it, offer other likely meanings as links and small sections:
     #  - a real word that is a likely slip for a far more read one ("hobbs" -> hobbit, hobby)
     #  - a very misspelled query that is close to a whole title or author name ("shrlck hlms")
     suggestions = [] if expanded else popular_neighbours(sys, q)
+    if misfit and len(misfit) < len(q.split()):
+        suggestions = list(dict.fromkeys(misfit + suggestions))[:3]     # "percy" on its own is a meaning too
     weak = len(df) == 0 or (banner or '').startswith(('No books match', '“'))
     unknown_word = any(w.isalpha() and len(w) >= 3 and w not in STOPWORDS and not len(docs_with(sys, w))
                        for w in (fold(t).strip('.,!?;:"()') for t in q.split()))
     guessed = (banner or '').startswith(('Searched for', 'Did you mean'))   # the search had to guess a fix
-    if not suggestions and not expanded and unknown_word and (weak or guessed):
+    author_found = (banner or '').startswith('Showing results for author')   # the typo already became a real author
+    if not suggestions and not expanded and unknown_word and (weak or guessed) and not author_found:
         suggestions = phrase_guesses(sys, q)
     # never suggest what the page already shows ("stfen kng" already shows Stephen King)
-    suggestions = [s for s in suggestions if fold(s) not in fold(banner or '')]
+    suggestions = [s for s in suggestions if fold(s) not in fold(banner or '') or s in misfit]
     if suggestions:
         kw = dict(mood_filter=mood_filter, category_filter=category_filter, free_only=free_only)
         shown = set(df['dedup_key']) if 'dedup_key' in df.columns else set()
@@ -1862,6 +2023,8 @@ def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, f
             if len(extra) and (banner or '').startswith('No books match'):
                 banner = f"No exact match for “{q.strip()}”. These are the closest guesses."
                 # ("“…” isn't in our library yet" stays as it is: it is the clearer message)
+    if not expanded:
+        df, banner = _add_mentions(sys, df, q, banner, category_filter, free_only)
     out = add_why(df, q, banner, category_filter)
     if suggestions:
         out.attrs['suggestions'] = suggestions
