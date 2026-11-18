@@ -38,6 +38,9 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '')      # moderation page is 
 print("Loading search system... this may take a moment.")
 fetch_data.ensure_data()                    # on the website: downloads the book data on first start
 system = load_search_system(fetch_data.DATA_DIR)
+import search as _search
+for _kind in ('title', 'author'):                # 'sounds like' lists for very misspelled searches, built now
+    _search._sound_index(system, _kind)          # so the first such search is not slow
 community.init()
 
 
@@ -229,6 +232,7 @@ def home():
                 and not set(words) & {'by', 'author', 'writer', 'written'}):
             online_q = query.strip()
         alternatives = results_df.attrs.get('alternatives') or []
+        suggestions = results_df.attrs.get('suggestions') or []
         if online_q and alternatives:
             online_q = alternatives[0]            # look online for what was meant ("percy jakson" -> percy jackson)
         results = decorate(results_df.fillna('').to_dict('records'))
@@ -236,6 +240,8 @@ def home():
             did_you_mean = alternatives               # several meanings: every one is a link
         elif alternatives:
             pass                                      # one meaning: the "Showing results for" line says it
+        elif suggestions:
+            did_you_mean = suggestions                # typed word kept; other likely meanings are links
         elif suggestion and suggestion.startswith('Did you mean: '):
             did_you_mean, suggestion = suggestion[len('Did you mean: '):], None
         elif suggestion in KNOWN_NAMES and suggestion.lower() != query.strip().lower():

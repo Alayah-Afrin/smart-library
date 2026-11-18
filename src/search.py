@@ -834,6 +834,97 @@ def spelling_alternatives(sys, query, keep=3, margin=15):
     return out[:4]
 
 
+def _top_pop(sys, ids):
+    """How much the 10 most-read books among `ids` are read (same measure as spelling_alternatives)."""
+    if not len(ids):
+        return 0.0
+    p = sys['work_dedup']['rating_count'].fillna(0).to_numpy()[ids]
+    return float(np.partition(p, len(p) - 10)[-10:].sum()) if len(p) > 10 else float(p.sum())
+
+
+def popular_neighbours(sys, query, keep=2):
+    """A correctly spelled word can still be a slip for a far more read one: "hobbs" (Will Hobbs) is
+    1-2 letters from hobbit and hobby, "hawkings" from Hawking. Returns up to `keep` queries with one
+    word swapped for such a neighbour, most read first. The typed query itself is NOT replaced: these
+    are only offered as "Did you mean" links and small sections under the real results."""
+    tokens = query.split()
+    if not 1 <= len(tokens) <= 4:
+        return []
+    found = []
+    for i, tok in enumerate(tokens):
+        b = fold(tok).strip('.,!?;:"()')
+        if not (b.isalpha() and len(b) >= 4 and b not in STOPWORDS):
+            continue
+        own_ids = docs_with(sys, b)
+        if not len(own_ids):
+            continue                                       # an unknown word is spelling_alternatives' job
+        own_pop = _top_pop(sys, own_ids)
+        limit = 1 if len(b) <= 4 else 2
+        for cand, _, _ in process.extract(b, sys['fix_words'], scorer=fuzz.ratio, score_cutoff=70, limit=40):
+            if cand == b or cand[0] != b[0] or cand in STOPWORDS:
+                continue
+            edits = DamerauLevenshtein.distance(b, cand)
+            if edits > limit or (edits == 2 and cand[:3] != b[:3]):   # hob-bs ~ hob-bit; fro-do is not fyo-dor
+                continue
+            pop = _top_pop(sys, docs_with(sys, cand))
+            if pop >= 3 * max(own_pop, 1) and pop >= 100:     # only a link, so a lower bar than replacing
+                swapped = ' '.join(cand if j == i else t for j, t in enumerate(tokens))
+                found.append((pop / (1 + edits), swapped))
+    found.sort(reverse=True)
+    out = []
+    for _, q in found:
+        if q not in out:
+            out.append(q)
+        if len(out) == keep:
+            break
+    return out
+
+
+def _phrase_sound(s):
+    """'The Lord of the Rings' -> 'lord of th rings': how a whole phrase sounds, without a leading article
+    (so "lrd of th rngs" is not pushed toward shorter titles that lack the "The")."""
+    words = proc(s).split()
+    if len(words) > 1 and words[0] in ('the', 'a', 'an'):
+        words = words[1:]
+    return ' '.join(sounds_like(w) for w in words)
+
+
+def _sound_index(sys, name):
+    """Lazily built 'how it sounds' keys for every title / author name (made once, then reused)."""
+    key = name + '_sound'
+    if key not in sys:
+        src = sys['title_list'] if name == 'title' else sys['author_list']
+        sys[key] = [_phrase_sound(s) for s in src]
+    return sys[key]
+
+
+def phrase_guesses(sys, query, keep=3):
+    """Very misspelled queries (4+ wrong letters: "shrlck hlms", "hary pottr and filosofers ston"):
+    no single word is close to anything, but the WHOLE phrase is close to a real title or author,
+    especially when compared by sound. Returns up to `keep` titles / author names, most likely first."""
+    q_sound = _phrase_sound(query)
+    if len(q_sound.replace(' ', '')) < 5:
+        return []
+    pop = sys['work_dedup'].drop_duplicates('title').set_index('title')['rating_count'].to_dict()
+    fame = sys['author_fame']
+    scored = []
+    for kind in ('title', 'author'):
+        names = sys['title_list'] if kind == 'title' else sys['author_list']
+        for _, score, i in process.extract(q_sound, _sound_index(sys, kind), scorer=fuzz.ratio,
+                                           score_cutoff=72, limit=8):
+            name = names[i]
+            reads = pop.get(name, 0) if kind == 'title' else fame.get(sys['author_norm_of'].get(name, ''), 0)
+            scored.append((score + 6 * math.log10(1 + (reads or 0)), name))
+    scored.sort(reverse=True)
+    out = []
+    for _, name in scored:
+        if name.lower() not in (o.lower() for o in out) and fold(name) != fold(query):
+            out.append(name)
+        if len(out) == keep:
+            break
+    return out
+
+
 def closest_title(sys, q, cutoff=0):
     """Closest catalog title -> (title_proc, score, index) or None. Compares in word order AND with the words
     sorted, and keeps the better: sorting alone breaks on a typo that changes the order
@@ -1604,7 +1695,52 @@ def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, f
                 df, banner, q = df2, f"Did you mean “{title}”? Showing results for it.", title
     if expanded and (not banner or banner.startswith('Searched for')):
         banner = f"Showing results for “{expanded}” ({short.upper()})"
-    return add_why(df, q, banner, category_filter), banner
+
+    # What was typed stays first. Below it, offer other likely meanings as links and small sections:
+    #  - a real word that is a likely slip for a far more read one ("hobbs" -> hobbit, hobby)
+    #  - a very misspelled query that is close to a whole title or author name ("shrlck hlms")
+    suggestions = [] if expanded else popular_neighbours(sys, q)
+    weak = len(df) == 0 or (banner or '').startswith(('No books match', '“'))
+    unknown_word = any(w.isalpha() and len(w) >= 3 and w not in STOPWORDS and not len(docs_with(sys, w))
+                       for w in (fold(t).strip('.,!?;:"()') for t in q.split()))
+    guessed = (banner or '').startswith(('Searched for', 'Did you mean'))   # the search had to guess a fix
+    if not suggestions and not expanded and unknown_word and (weak or guessed):
+        suggestions = phrase_guesses(sys, q)
+    # never suggest what the page already shows ("stfen kng" already shows Stephen King)
+    suggestions = [s for s in suggestions if fold(s) not in fold(banner or '')]
+    if suggestions:
+        kw = dict(mood_filter=mood_filter, category_filter=category_filter, free_only=free_only)
+        shown = set(df['dedup_key']) if 'dedup_key' in df.columns else set()
+        extra = []
+        for alt in suggestions:
+            d2, _ = _search_core(alt, sys, top_k=8, online=False, **kw)
+            if 'dedup_key' in d2.columns:
+                d2 = d2[~d2['dedup_key'].isin(shown)]
+                shown |= set(d2['dedup_key'].head(6))
+            d2 = d2.head(6).copy()
+            if len(d2):
+                d2['section'] = f"Did you mean “{alt}”?"
+                extra.append(d2)
+        if extra:
+            if len(df) and ('section' not in df.columns or not df['section'].fillna('').astype(bool).any()):
+                df = df.copy()
+                df['section'] = f"Results for “{q.strip()}”"
+            reads = lambda d: float(pd.to_numeric(d['rating_count'], errors='coerce').fillna(0).head(5).sum()) \
+                if 'rating_count' in d.columns else 0.0
+            if guessed and len(df) and reads(extra[0]) >= 10 * max(reads(df), 1):
+                # the search only GUESSED its fix ("lrd of th rngs" -> Lord of the Ringards) and a suggestion
+                # is far more read (The Lord of the Rings): show the suggestion first
+                df = pd.concat([extra[0], df] + extra[1:], ignore_index=True)
+                banner = f"Showing results for “{suggestions[0]}”."
+            else:
+                df = pd.concat([df] + extra, ignore_index=True)
+            if len(extra) and (banner or '').startswith('No books match'):
+                banner = f"No exact match for “{q.strip()}”. These are the closest guesses."
+                # ("“…” isn't in our library yet" stays as it is: it is the clearer message)
+    out = add_why(df, q, banner, category_filter)
+    if suggestions:
+        out.attrs['suggestions'] = suggestions
+    return out, banner
 
 def todays_pick(sys, day=None):
     import datetime
