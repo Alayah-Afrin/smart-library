@@ -940,24 +940,33 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
 
 
 def _mention_index(sys):
-    """Lazily built: row ids of books that have a description, and those descriptions (folded, lowercase)."""
+    """Lazily built: row ids of books that have a description, and those descriptions (folded, lowercase),
+    kept as an Arrow array so a search over all of them runs in fast native code."""
     if 'desc_ids' not in sys:
+        import pyarrow as pa
         d = sys['work_dedup']['description'].fillna('')
         has = np.flatnonzero((d.str.len() > 20).to_numpy())
         sys['desc_ids'] = has
-        sys['desc_text'] = pd.Series([fold(x) for x in d.iloc[has]], dtype=object)
+        sys['desc_text'] = pa.array([fold(x) for x in d.iloc[has]], type=pa.string())
     return sys['desc_ids'], sys['desc_text']
 
 
 def mention_ids(sys, phrase):
     """Books whose description names the phrase ("percy jackson", "narnia", "hermione"): a series or a
-    character that is in no title. Most-read first."""
+    character that is in no title. Most-read first.
+    Speed: a native substring search for the longest word first, then the exact phrase only on those."""
+    import pyarrow.compute as pc
     words = re.findall(r'[a-z0-9]+', fold(phrase))
     if not words or not 1 <= len(words) <= 3 or sum(len(w) for w in words) < 4:
         return EMPTY_IDS
     ids, text = _mention_index(sys)
-    pat = r'(?<![a-z0-9])' + r'[\s_]+'.join(re.escape(w) for w in words) + r'(?![a-z0-9])'
-    hit = ids[text.str.contains(pat, regex=True).to_numpy()]
+    first = max(words, key=len)
+    rough = np.flatnonzero(pc.match_substring(text, first).to_numpy(zero_copy_only=False))
+    if not len(rough):
+        return EMPTY_IDS
+    pat = re.compile(r'(?<![a-z0-9])' + r'[\s_]+'.join(re.escape(w) for w in words) + r'(?![a-z0-9])')
+    sub = text.take(rough).to_pylist()
+    hit = ids[rough[[bool(pat.search(t)) for t in sub]]]
     if not len(hit):
         return EMPTY_IDS
     rc = sys['work_dedup']['rating_count'].fillna(0).to_numpy()[hit]
@@ -1853,7 +1862,12 @@ def _add_mentions(sys, df, phrase, banner, category_filter=None, free_only=False
     if len(df) and ('section' not in df.columns or not df['section'].fillna('').astype(bool).any()):
         df = df.copy()
         df['section'] = f"Results for “{phrase.strip()}”"
-    if m_pop >= (1 if phrase_hit else 3) * max(main_pop, 1):
+    # an everyday topic word ("loneliness", "dragons") with books TITLED by it: those stay first, the books
+    # whose description mentions it come after. Names ("percy", "narnia") may still put the series first.
+    topic = not phrase_hit and all(spell.word_usage_frequency(w) >= 1e-6 for w in words)
+    titled = topic and len(df) and 'title' in df.columns and df['title'].fillna('').map(fold).str.contains(
+        r'(?<!\w)' + re.escape(words[0])).head(10).any()
+    if not titled and m_pop >= (1 if phrase_hit else 3) * max(main_pop, 1):
         df = pd.concat([m, df], ignore_index=True)
         if (banner or '').startswith(('“', 'No books match')):   # "isn't in our library": it is, under another title
             banner = f"Showing books about “{nice}”."
@@ -1862,7 +1876,79 @@ def _add_mentions(sys, df, phrase, banner, category_filter=None, free_only=False
     return df, banner
 
 
+# Famous characters -> the series (as a search that finds it). Book data rarely names characters, so a
+# student typing "hermione" or "katniss" would otherwise only get unrelated books.
+CHARACTERS = {
+    'Harry Potter': ['hermione', 'hermione granger', 'ron weasley', 'dumbledore', 'albus dumbledore', 'voldemort',
+                     'snape', 'severus snape', 'hagrid', 'draco malfoy', 'hogwarts', 'sirius black', 'neville longbottom'],
+    'Lord of the Rings': ['frodo', 'frodo baggins', 'gandalf', 'aragorn', 'legolas', 'gimli', 'samwise', 'gollum',
+                          'sauron', 'middle earth', 'middle-earth'],
+    'The Hobbit': ['bilbo', 'bilbo baggins', 'smaug', 'thorin'],
+    'Hunger Games': ['katniss', 'katniss everdeen', 'peeta', 'peeta mellark', 'district 12', 'mockingjay'],
+    'Sherlock Holmes': ['sherlock', 'dr watson', 'moriarty', 'baker street'],
+    'Narnia': ['aslan', 'lucy pevensie', 'pevensie', 'narnia'],
+    'Percy Jackson': ['annabeth', 'camp half-blood', 'camp half blood'],
+    'Twilight': ['bella swan', 'edward cullen', 'jacob black'],
+    'Game of Thrones': ['jon snow', 'daenerys', 'tyrion', 'tyrion lannister', 'westeros', 'arya stark', 'cersei'],
+    'Hercule Poirot': ['poirot', 'hercule poirot', 'miss marple'],
+    'Pride and Prejudice': ['elizabeth bennet', 'mr darcy', 'darcy'],
+    'Alice in Wonderland': ['mad hatter', 'cheshire cat'],
+    'Winnie the Pooh': ['pooh', 'piglet', 'eeyore', 'christopher robin'],
+    'Dune': ['paul atreides', 'arrakis', 'muad dib'],
+    'Diary of a Wimpy Kid': ['greg heffley'],
+    'Nancy Drew': ['nancy drew'],
+    'Hardy Boys': ['hardy boys'],
+    'Artemis Fowl': ['artemis fowl'],
+    'Tintin': ['tintin', 'captain haddock', 'snowy'],
+    'Discworld': ['rincewind', 'ankh morpork', 'granny weatherwax'],
+}
+_CHARACTER_OF = {name: series for series, names in CHARACTERS.items() for name in names}
+
+
+def character_series(query):
+    """'hermione' / 'hermoine' -> ('Hermione', 'Harry Potter'), else None. Small typos allowed (5+ letters)."""
+    q = ' '.join(re.findall(r'[a-z0-9-]+', fold(query or '')))
+    if not q:
+        return None
+    if q in _CHARACTER_OF:
+        return q.title(), _CHARACTER_OF[q]
+    if len(q) >= 5:
+        hit = process.extractOne(q, list(_CHARACTER_OF), scorer=fuzz.ratio, score_cutoff=86)
+        if hit:
+            return hit[0].title(), _CHARACTER_OF[hit[0]]
+    return None
+
+
 def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False, online=True):
+    """Public entry point: the search below, plus famous characters ("hermione" -> Harry Potter books)."""
+    df, banner = _search_books(query, sys, mood_filter, category_filter, top_k, free_only, online)
+    ch = character_series(query)
+    if not ch or fold(ch[1]) == fold(query or '').strip():
+        return df, banner
+    name, series = ch
+    sdf, _ = _search_books(series, sys, mood_filter, category_filter, top_k, free_only, False)
+    if 'dedup_key' in sdf.columns and 'dedup_key' in df.columns:
+        top = set(df['dedup_key'].head(8))
+        if len(top & set(sdf['dedup_key'].head(12))) >= 3:
+            return df, banner                     # the page already leads with the series ("sherlock")
+        sdf = sdf[~sdf['dedup_key'].isin(top)]
+    sdf = sdf.head(12).copy()
+    if not len(sdf):
+        return df, banner
+    sdf['section'] = f"{name} is a character in {series}"
+    attrs = dict(df.attrs)
+    # a famous character's name: the series is what was meant ("hermione": Harry Potter, not Hermione Lee;
+    # "katniss": Hunger Games, not books about kissing). What the words alone found stays below it.
+    if len(df) and ('section' not in df.columns or not df['section'].fillna('').astype(bool).any()):
+        df = df.copy()
+        df['section'] = f"Results for “{(query or '').strip()}”"
+    out = pd.concat([sdf, df.head(12)], ignore_index=True)
+    banner = f"{name} is a character in {series}: showing those books first."
+    out.attrs.update(attrs)
+    return out, banner
+
+
+def _search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False, online=True):
     """Public entry point: tidy the query, expand short forms, run the search, then attach the 'why' chips."""
     query = re.sub(r'(?<=[^\W\d_])[-_/]+(?=[^\W\d_])', ' ', query or '')   # "harry-potter" -> "harry potter"
     had_isbn_word = bool(ISBN_WORD.match(query))
@@ -1906,9 +1992,9 @@ def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, f
         df, banner = _search_core(alternatives[0], sys, top_k=top_k, online=online, **kw)
         if "isn't in our library" in (banner or '') or (banner or '').startswith('No books match'):
             # last resort: the FIRST letter may be a slipped key ("orcy jackso" = percy jackson)
-            for alt in spelling_alternatives(sys, q, slips=True)[:2]:
-                if alt in alternatives:
-                    continue
+            # skip readings already tried FIRST, then take two ("orcy jackso": orczy and orc were tried,
+            # percy jackson is the third slip reading)
+            for alt in [a for a in spelling_alternatives(sys, q, slips=True) if a not in alternatives][:2]:
                 d2, b2 = _search_core(alt, sys, top_k=top_k, online=online, **kw)
                 if len(d2) and not ("isn't in our library" in (b2 or '') or (b2 or '').startswith('No books match')):
                     alternatives = [alt] + alternatives

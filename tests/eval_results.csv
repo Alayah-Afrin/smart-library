@@ -91,7 +91,7 @@ author_typo,dan broun,Semantic,0.0,0.0,0.0,30,Chump Change | Daniel | Outtakes: 
 author_typo,dan broun,Hybrid,1.0,0.8603818544462508,1.0,30,Angels & Demons | Digital Fortress : A Thriller | El Codigo Da Vinci / The Da Vinci Code
 topic,a book about loneliness,BM25,1.0,1.0,1.0,681,The Well of Loneliness | Facing Loneliness | The Wizard of Loneliness
 topic,a book about loneliness,Semantic,1.0,1.0,1.0,681,Loneliness | Loneliness | Loneliness: the experience of emotional and social isolation
-topic,a book about loneliness,Hybrid,0.8,0.7799082337019198,0.5,681,Tears of the Moon | さびしすぎてレズ風俗に行きましたレポ | The lonely city
+topic,a book about loneliness,Hybrid,1.0,1.0,1.0,681,Loneliness | Children of loneliness | Mr. Loneliness
 topic,neural networks,BM25,1.0,1.0,1.0,475,Complex-Valued Neural Networks | Neural Networks and Deep Learning | Make your own neural network
 topic,neural networks,Semantic,0.8,0.7799082337019198,0.5,475,Abstraktion und Einfühlung | Applied Artificial Neural Networks | Machine Learning - A Journey To Deep Learning: With Exercises And Answers
 topic,neural networks,Hybrid,1.0,1.0,1.0,475,Neural Networks and Deep Learning | Advanced Applications for Artificial Neural Networks | Neural Networks and Deep Learning

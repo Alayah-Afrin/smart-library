@@ -64,6 +64,20 @@ TYPOS = [
     ('Two meanings typo', 'potterr', r'harry potter'),
     ('Two meanings typo', 'hobbitt', r'hobbit'),
     ('Two meanings typo', 'twilght', r'twilight'),
+    # series known by the hero's name; first letter missing or wrong
+    ('Series typo', 'percy jackson', r'lightning thief|sea of monsters|titan|labyrinth|olympian|percy jackson'),
+    ('Series typo', 'orcy jackso', r'lightning thief|sea of monsters|titan|labyrinth|olympian|percy jackson'),
+    ('Series typo', 'ercy jackson', r'lightning thief|sea of monsters|titan|labyrinth|olympian|percy jackson'),
+    ('Series typo', 'percy jakson', r'lightning thief|sea of monsters|titan|labyrinth|olympian|percy jackson'),
+    # famous characters (book data rarely names them): the series must come first
+    ('Character', 'hermione', r'harry potter'),
+    ('Character', 'hermoine', r'harry potter'),
+    ('Character', 'dumbledore', r'harry potter'),
+    ('Character', 'gandalf', r'lord of the rings|hobbit'),
+    ('Character', 'frodo', r'lord of the rings|hobbit'),
+    ('Character', 'katniss', r'hunger games'),
+    ('Character', 'poirot', r'christie|poirot|orient express|roger ackroyd'),
+    ('Topic word', 'a book about loneliness', r'loneliness'),
     # titles: one word wrong
     ('Title typo', 'harry poter', r'harry potter'),
     ('Title typo', 'hary potter', r'harry potter'),
