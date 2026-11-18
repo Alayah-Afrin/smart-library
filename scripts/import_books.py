@@ -60,14 +60,21 @@ if not args.no_check:
             print("  -", r['title'], "->", r['read_url'])
     df = df[ok].copy()
 
-slug = lambda r: re.sub(r'[^a-z0-9]+', '-', fold(r['read_url'].rstrip('/').split('/')[-1] or r['title'])).strip('-')
+def slug(r):
+    """A stable id part: the Open Library work id when there is one (books without a free link),
+    else the last part of the link, else the title."""
+    base = r.get('ol_key', '') or r['read_url'].rstrip('/').split('/')[-1] or r['title']
+    return re.sub(r'[^a-z0-9]+', '-', fold(base)).strip('-')
 df['isbn13'] = [f"{args.source}:{slug(r)}" for _, r in df.iterrows()]      # an id that is not a real ISBN
 df['source'] = 'import_' + args.source
 df['title_norm'] = df['title'].map(norm)
 df['author_norm'] = df['author'].map(norm)
 df['mood'] = ''
 df['mood_confidence'] = 0.0
-df['rating_count'] = 0
+# popularity and reader ratings, when the list has them (Open Library: reading-log count and star ratings)
+df['rating_count'] = pd.to_numeric(df['rating_count'], errors='coerce').fillna(0).astype(int) if 'rating_count' in df.columns else 0
+for col in ('ol_avg', 'ol_count'):
+    df[col] = pd.to_numeric(df[col], errors='coerce') if col in df.columns else np.nan
 df['embedding_text'] = df['title'] + ' by ' + df['author'] + '. ' + df['categories'] + '. ' + df['description']
 df = df.drop_duplicates('isbn13')
 
