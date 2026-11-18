@@ -320,8 +320,13 @@ body::before {
 .topnav a:hover { color: #6B2E2E; }
 .topnav a.active { color: #6B2E2E; border-bottom-color: #6B2E2E; }
 .top-filter { display: flex; justify-content: center; margin: 0 0 20px; }
-.top-filter select { height: 44px; padding: 0 14px; border: 1px solid #d9d0c0; border-radius: 10px;
-                     background: #FBF8F2; font: inherit; color: #2B2420; }
+.top-filter select { height: 44px; padding: 0 40px 0 14px; border: 1.5px solid var(--border); border-radius: 10px;
+                     background-color: var(--card); font: inherit; color: var(--ink); cursor: pointer;
+                     appearance: none; -webkit-appearance: none;     /* one arrow (ours), shown once on the right */
+                     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%236B2E2E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+                     background-repeat: no-repeat; background-position: right 14px center; background-size: 12px 8px; }
+.top-filter select:focus-visible { outline: 2px solid var(--brass, #b08d57); outline-offset: 2px; }
+.top-filter select option { background-color: var(--card); color: var(--ink); }
 
 .read-free { display: inline-block; margin: 0 12px 6px 0; padding: 6px 12px; border-radius: 8px;
              background: #3F5844; color: #fff; text-decoration: none; font-size: 13px; font-weight: 600; }

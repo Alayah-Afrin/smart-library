@@ -112,7 +112,8 @@ SCENARIOS = [
     ('Two meanings', 'kathleen rowling', r'rowling'),
     ('Two meanings', 'arthur', r'arthur c\.? clarke|conan doyle|arthur miller'),
     ('Two meanings', 'ronald tolkien', r'^(the )?(fellowship|hobbit|two towers|return of the king|lord of the rings)'),
-    ('Not in our library', 'project hail mary', ('say', "isn't in our library")),
+    ('Newer book (2021 - Open Library)', 'project hail mary', r'project hail mary'),
+    ('Not in our library', 'zorblax quintessence chronicles', ('say', "isn't in our library")),
     ('Nonsense', 'asdfghjk', ('say', 'no books match')),
     ('Nonsense', 'qwertyuiop zxcv', ('say', 'no books match')),
 ]

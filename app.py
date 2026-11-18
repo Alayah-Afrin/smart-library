@@ -229,6 +229,8 @@ def home():
                 and not set(words) & {'by', 'author', 'writer', 'written'}):
             online_q = query.strip()
         alternatives = results_df.attrs.get('alternatives') or []
+        if online_q and alternatives:
+            online_q = alternatives[0]            # look online for what was meant ("percy jakson" -> percy jackson)
         results = decorate(results_df.fillna('').to_dict('records'))
         if len(alternatives) >= 2:
             did_you_mean = alternatives               # several meanings: every one is a link

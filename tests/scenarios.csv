@@ -3,70 +3,70 @@ Exact title,the great gatsby,True,24,,the great gatsby | f. scott fitzgerald || 
 Exact title,to kill a mockingbird,True,24,,to kill a mockingbird | harper lee || to kill a mockingbird (cliffs notes) | cliffs || to kill a mockingbird - hhp edt | harper lee
 Exact title,pride and prejudice,True,24,,pride and prejudice | jane austen || pride and prejudice (intermediate level) | ma || presumption: an entertainment : a sequel to p
 Part of a title,gatsby,True,24,,the great gatsby (great gatsby hre) | f. scot || the great gatsby (scribner classic) | f. scot || der grobe gatsby/the great gatsby | f. scott 
-Part of a title,mockingbird,True,24,,to kill a mockingbird | harper lee || to kill a mockingbird : the 40th anniversary  || mockingbird (del rey impact) | walter s. tevi
-Part of a title,hunger games,True,24,,concepts of nature in young adult dystopian f || comparison of the systems of state and method || hunger | terry durack
-Misspelled title,harry poter,True,24,Searched for: harry potter,harry potter and the sorcerer's stone | j.k.  || harry potter and the chamber of secrets | j.  || harry potter and the prisoner of azkaban (har
+Part of a title,mockingbird,True,24,,to kill a mockingbird | harper lee || to kill a mockingbird : the 40th anniversary  || mockingbird | kathryn erskine
+Part of a title,hunger games,True,24,,"the hunger games | suzanne collins || the hunger games trilogy (hunger games / catc || hunger games, catching fire | kate egan"
+Misspelled title,harry poter,True,30,Showing results for “harry potter”.,harry potter and the sorcerer's stone | j.k.  || harry potter and the chamber of secrets | j.  || harry potter and the prisoner of azkaban (har
 Misspelled title,moby dik,True,21,Searched for: Moby-Dick,"moby-dick | herman melville || moby-dick or, the whale (penguin classics) |  || moby-dick: an authoritative text (norton crit"
-Misspelled title,pride and prejudise,True,24,Searched for: pride and prejudice,pride and prejudice | jane austen || pride and prejudice (intermediate level) | ma || presumption: an entertainment : a sequel to p
-Misspelled title,the hobit,True,24,Searched for: the hobbit,the hobbit : the enchanting prelude to the lo || the hobbit | j.r.r. tolkien || the hobbit: or there and back again | j.r.r. 
+Misspelled title,pride and prejudise,True,24,Showing results for “pride and prejudice”.,pride and prejudice | jane austen || pride and prejudice (intermediate level) | ma || presumption: an entertainment : a sequel to p
+Misspelled title,the hobit,True,36,Showing results for “the hobbit”.,the hobbit : the enchanting prelude to the lo || the hobbit | j.r.r. tolkien || the hobbit: or there and back again | j.r.r. 
 Misspelled title,to kil a mokingbird,True,24,Searched for: To Kill a Mockingbird,to kill a mockingbird | harper lee || to kill a mockingbird (cliffs notes) | cliffs || to kill a mockingbird - hhp edt | harper lee
 Title + extra words,harry potter book,True,24,,harry potter and the sorcerer's stone (harry  || harry potter fun book | warner bros. || harry potter and the chamber of secrets (book
 Title + extra words,the hobbit novel,True,24,,the hobbit | j.r.r. tolkien || lo hobbit / the hobbit | j. r. r. tolkien || the hobbit and the lord of the rings | j.r.r.
 Unfinished title,harry pot,True,24,,harry potter and the sorcerer's stone | j.k.  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
 Unfinished title,lord of the ri,True,24,,the lord of the rings: the qpb companion to t || the lord of the rings | j. r. r. tolkien || the fellowship of the ring (the lord of the r
-Unfinished title,hunger gam,True,18,,concepts of nature in young adult dystopian f || comparison of the systems of state and method || god hunger | john kirvan
+Unfinished title,hunger gam,True,21,,"the hunger games | suzanne collins || the hunger games trilogy (hunger games / catc || hunger games, catching fire | kate egan"
 Full author name,stephen king,True,24,Showing results for author: Stephen King,dreamcatcher | stephen king || hearts in atlantis | stephen king || dolores claiborne | stephen king
 Full author name,agatha christie,True,24,Showing results for author: Agatha Christie,and then there were none | agatha christie || murder on the orient express (hercule poirot  || and then there were none : a novel | agatha c
 Full author name,jane austen,True,24,Showing results for author: Jane Austen,pride and prejudice | jane austen || sense and sensibility | jane austen || emma (penguin popular classics) | jane austen
 Surname only,rowling,True,24,Showing results for author: J. K. Rowling,harry potter and the sorcerer's stone (harry  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
 Surname only,tolkien,True,24,Showing results for author: J.R.R. TOLKIEN,"the fellowship of the ring (the lord of the r || the hobbit : the enchanting prelude to the lo || the two towers (the lord of the rings, part 2"
-Surname only,christie,True,30,Showing results for author: Agatha Christie,and then there were none | agatha christie || murder on the orient express (hercule poirot  || and then there were none : a novel | agatha c
+Surname only,christie,True,24,Showing results for author: Agatha Christie,and then there were none | agatha christie || murder on the orient express (hercule poirot  || and then there were none : a novel | agatha c
 Surname only,austen,True,24,Showing results for author: Jane Austen,pride and prejudice | jane austen || sense and sensibility | jane austen || emma (penguin popular classics) | jane austen
 First name only,stephen,True,26,Showing results for author: Stephen King,dreamcatcher | stephen king || hearts in atlantis | stephen king || dolores claiborne | stephen king
 First name only,stephan,True,26,Did you mean Stephen? Showing results for author: Stephen King,dreamcatcher | stephen king || hearts in atlantis | stephen king || dolores claiborne | stephen king
 First name only,agatha,True,24,,murder on the orient express | agatha christi || and then there were none : a novel | agatha c || the murder of roger ackroyd | agatha christie
 First name only,jane,True,24,,pride and prejudice | jane austen || the book of ruth | jane hamilton || a map of the world | jane hamilton
 First name only,dan,True,24,,angels & demons | dan brown || digital fortress : a thriller | dan brown || hyperion | dan simmons
-Misspelled author,roling,True,24,Did you mean Rowling? Showing results for author: J. K. Rowling,harry potter and the sorcerer's stone (harry  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
-Misspelled author,tolkein,True,24,Did you mean Tolkien? Showing results for author: J.R.R. TOLKIEN,"the fellowship of the ring (the lord of the r || the hobbit : the enchanting prelude to the lo || the two towers (the lord of the rings, part 2"
-Misspelled author,agata christie,True,24,Showing results for author: Agatha Christie,and then there were none | agatha christie || murder on the orient express (hercule poirot  || and then there were none : a novel | agatha c
+Misspelled author,roling,True,30,Showing results for “rowling”. Showing results for author: J. K. Rowling,harry potter and the sorcerer's stone (harry  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
+Misspelled author,tolkein,True,24,Showing results for “tolkien”. Showing results for author: J.R.R. TOLKIEN,"the fellowship of the ring (the lord of the r || the hobbit : the enchanting prelude to the lo || the two towers (the lord of the rings, part 2"
+Misspelled author,agata christie,True,24,Showing results for “agatha christie”. Showing results for author: Agatha Christie,and then there were none | agatha christie || murder on the orient express (hercule poirot  || and then there were none : a novel | agatha c
 Misspelled author,stephen kng,True,24,Showing results for author: Stephen King,dreamcatcher | stephen king || hearts in atlantis | stephen king || dolores claiborne | stephen king
-Misspelled author,shakspeare,True,24,Did you mean Shakespeare? Showing results for author: William Shakespeare,hamlet | william shakespeare || romeo and juliet | william shakespeare || macbeth | william shakespeare
+Misspelled author,shakspeare,True,24,Showing results for “shakespeare”. Showing results for author: William Shakespeare,hamlet | william shakespeare || romeo and juliet | william shakespeare || macbeth | william shakespeare
 Initials,jk,True,24,,harry potter and the sorcerer's stone (harry  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
 Initials,jrr tolkien,True,24,Showing results for author: J.R.R. TOLKIEN,"the fellowship of the ring (the lord of the r || the hobbit : the enchanting prelude to the lo || the two towers (the lord of the rings, part 2"
 Initials,cs lewis,True,24,Showing results for author: C. S. Lewis,"the lion, the witch, and the wardrobe (the ch || the magician's nephew (rack) (narnia) | c. s. || the horse and his boy | c. s. lewis"
 Initials,j.k. rowling,True,24,Showing results for author: J. K. Rowling,harry potter and the sorcerer's stone (harry  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
 Author + title mixed,rowling harry potter,True,24,,j. k. rowling: the wizard behind harry potter || j. k. rowling: completely updated : the wizar || harry potter and the chamber of secrets by j.
 Author + title mixed,king the shining,True,24,,"shining (the stephen king collectors edition) || stephen king: three complete novels: carrie,  || stephen king: the shining, salems lot, night "
-Author + title mixed,tolkien hobbit,True,24,,j.r.r. tolkien's the hobbit and the lord of t || the hobbit | j.r.r. tolkien || lo hobbit / the hobbit | j. r. r. tolkien
+Author + title mixed,tolkien hobbit,True,24,,"hobbits, elves, and wizards: exploring the wo || j.r.r. tolkien's the hobbit and the lord of t || the hobbit | j.r.r. tolkien"
 """books by"" phrasing",books by dickens,True,24,,great expectations (english library) | charle || great expectations: by charles dickens | char || christmas books | charles dickens
 """books by"" phrasing",novels by jane austen,True,24,,great novels of jane austen | jane austen || complete novels of jane austen | jane austen || jane austen: the complete novels | jane auste
 """books by"" phrasing",written by agatha christie,True,24,,agatha christie: an autobiography | agatha ch || an autobiography | agatha christie || giants' bread | agatha christie
 Name swapped,king stephen,True,24,Showing results for author: Stephen King,dreamcatcher | stephen king || hearts in atlantis | stephen king || dolores claiborne | stephen king
 Name swapped,potter harry,True,24,,harry potter and the sorcerer's stone | j.k.  || harry potter and the chamber of secrets | j.  || harry potter and the prisoner of azkaban (har
 Genre / topic,horror,True,24,,a thin dark line (mysteries & horror) | tami  || midnight champagne : a novel (mysteries & hor || staggerford (mysteries & horror) | jon hassle
-Genre / topic,romance novels,True,24,,montana: a legacy of faith and love in four c || three complete novels of royalty and romance  || lancaster brides: romance drives the buggy in
+Genre / topic,romance novels,True,24,,"like water for chocolate: a novel in monthly  || dating games : a novel (harlequin romance, 32 || montana: a legacy of faith and love in four c"
 Genre / topic,science fiction,True,24,,neuromancer (ace science fiction) | william g || the left hand of darkness (ace science fictio || damia (ace science fiction) | anne mccaffrey
 Genre / topic,history of rome,True,24,,a smaller history of rome | william smith || history of ancient rome | nathaniel harris || early history of rome: books i-v of the histo
 Description / goal,a sad story about growing up,True,24,,when i was your age: original stories about g || something that happens to other people: stori || when i was your age: original stories about g
 Description / goal,a book about loneliness,True,24,,loneliness | meg gaertner || children of loneliness | anzia yezierska || mr. loneliness | henry slesar
-Description / goal,easy fantasy book about friendship and adventure,True,24,,"the adventure league | hilda t. skae || friends and cousins | abbie farwell brown || motor matt's make-and-break; or, advancing th"
+Description / goal,easy fantasy book about friendship and adventure,True,24,,"the erth dragons | d'lacey, chris || the adventure league | hilda t. skae || unlocked | shannon messenger"
 Study subject,calculus,True,24,,"a tour of the calculus | david berlinski || l'affaire tournesol / calculus affair (tintin || neveryona, or: the tale of signs and cities :"
 Study subject,organic chemistry,True,24,,organic chemistry | francis a carey || fundamentals of organic chemistry | herman g. || organic chemistry (saunders golden sunburst s
-Study subject,python programming,True,24,,programming python | mark lutz || python programming on win32 | mark hammond || python web programming | steve  holden
-Study subject,machine learning for beginners,True,24,,machine learning for beginners | john slavio || machine learning for beginners | samuel hack || machine learning and ai for absolute beginner
-Study subject,data structures and algorithms,True,24,,data structures and algorithms in java | adam || data structures and algorithms (addison-wesle || algorithms and data structures with applicati
-Study short form,ai,True,24,Showing results for “artificial intelligence” (AI),man-made minds: the promise of artificial int || ai: the tumultuous history of the search for  || artificial intelligence | elaine rich
-Study short form,dsa,True,24,Showing results for “data structures and algorithms” (DSA),data structures and algorithms in java | adam || data structures and algorithms (addison-wesle || algorithms and data structures with applicati
-Study short form,dbms,True,24,Showing results for “database management systems” (DBMS),"database systems design, implementation, and  || database: principles programming and performa || fundamentals of database systems | ramez elma"
-Level words,beginner calculus,True,24,,"calculus | gilbert strang || calculus in context | james callahan, david c || calculus volume 1 | openstax"
-Level words,introduction to physics,True,24,,introduction to solid state physics | charles || introduction to ultrahigh energy cosmic ray p || introduction  to physics in modern medicine |
+Study subject,python programming,True,24,,programming in python 3 | mark summerfield || programming python | mark lutz || python programming on win32 | mark hammond
+Study subject,machine learning for beginners,True,24,,machine learning for beginners | microsoft || machine learning for beginners | john slavio || machine learning for absolute beginners | oli
+Study subject,data structures and algorithms,True,24,,algorithms and data structures | jurg nieverg || data structures and algorithms | yiteai || data structures and algorithms: annotated ref
+Study short form,ai,True,24,Showing results for “artificial intelligence” (AI),man-made minds: the promise of artificial int || ai: the tumultuous history of the search for  || artificial intelligence and intelligent syste
+Study short form,dsa,True,24,Showing results for “data structures and algorithms” (DSA),algorithms and data structures | jurg nieverg || data structures and algorithms | yiteai || data structures and algorithms: annotated ref
+Study short form,dbms,True,24,Showing results for “database management systems” (DBMS),"database management systems ebooks for all ed || database systems design, implementation, and  || database management systems solutions manual "
+Level words,beginner calculus,True,24,“beginner calculus” isn't in our library yet. These are the closest matches.,calculus | gilbert strang || vector calculus | michael corral || active calculus | matt boelkins
+Level words,introduction to physics,True,24,,introduction to elementary particle physics | || an introduction to particle physics and the s || introduction to solid state physics | charles
 Series name,lord of the rings,True,24,,lord of the rings trilogy | j.r.r. tolkien || the lord of the rings | j. r. r. tolkien || the hobbit and the lord of the rings | j.r.r.
 Series name,narnia,True,24,,"the lion, the witch and the wardrobe (chronic || the magician's nephew (rack) (narnia) | c. s. || the horse and his boy (rpkg) (narnia) | c. s."
-Series name,game of thrones,True,24,Searched for: A Game of Thrones,a game of thrones | george r.r. martin || game of thrones 5-copy boxed set | george r.  || a game of thrones enhanced edition (a song of
+Series name,game of thrones,True,24,,a game of thrones | george r.r. martin || game of thrones 5-copy boxed set | george r.  || game of thrones | cindy de la hoz
 Character name,sherlock holmes,True,24,,the hound of the baskervilles (sherlock holme || the adventures of sherlock holmes | sir arthu || sherlock holmes : the complete novels and sto
-Character name,hermione,True,3,Showing results for author: Hermione Lee,secret self short stories by women | hermione || the secret self i: short stories by women (th || hermione and her little group of serious thin
-Character name,frodo,False,26,Did you mean Fodor? Showing results for author: Fyodor Dostoyevsky,crime and punishment (penguin classics) | fyo || idiot (wordsworth collection) | fyodor dostoy || the brothers karamazov | fyodor dostoyevsky
+Character name,hermione,True,4,Showing results for author: Hermione Lee,secret self short stories by women | hermione || the secret self i: short stories by women (th || the vegan epicure: 135 delicious recipes for 
+Character name,frodo,True,3,,the journeys of frodo | barbara strachey || frodo's quest: living the myth in the lord of || three friends fremlin | fremlin r
 Number / year title,1984,True,24,,"1984 | george orwell || the fact of a doorframe: poems selected and n || minds, brains and science (1984 reith lecture"
 Number / year title,catch 22,True,5,,"catch 22 | joseph heller || closing time : the sequel to catch-22, a nove || catch-22 | joseph l. heller"
 Number / year title,fahrenheit 451,True,24,,fahrenheit 451 | ray bradbury || fahrenheit 451 - t.d. - | ray bradbury || fahrenheit 451 | bradbury
@@ -78,18 +78,19 @@ CAPITALS / punctuation,HARRY POTTER,True,24,,harry potter and the sorcerer's sto
 CAPITALS / punctuation,harry-potter,True,24,,harry potter and the sorcerer's stone | j.k.  || harry potter and the chamber of secrets | j.  || harry potter and the prisoner of azkaban (har
 Missing spaces,harrypotter,True,24,Searched for: Harry Potter,harry potter and the sorcerer's stone | j.k.  || harry potter and the chamber of secrets | j.  || harry potter and the prisoner of azkaban (har
 Missing spaces,lordoftherings,True,24,Searched for: lord of the rings,lord of the rings trilogy | j.r.r. tolkien || the lord of the rings | j. r. r. tolkien || the hobbit and the lord of the rings | j.r.r.
-Short real title,it,True,20,,"a child called \it\"": one child's courage to  || don't sweat the small stuff and it's all smal || it | stephen king"
-Ambiguous word,king,True,24,,dreamcatcher | stephen king || hearts in atlantis | stephen king || dolores claiborne | stephen king
-Ambiguous word,brown,True,24,,angels & demons | dan brown || digital fortress : a thriller | dan brown || the switch | sandra brown
-Plural / word form,vampires,True,24,,"vampire lestat (chronicles of the vampires, 2 || pandora : new tales of the vampires | anne ri || vittorio the vampire: new tales of the vampir"
+Short real title,it,True,21,,"a child called \it\"": one child's courage to  || don't sweat the small stuff and it's all smal || it | stephen king"
+Ambiguous word,king,True,24,,dreamcatcher | stephen king || read people like a book | patrick king || hearts in atlantis | stephen king
+Ambiguous word,brown,True,24,,angels & demons | dan brown || digital fortress : a thriller | dan brown || red rising | pierce brown
+Plural / word form,vampires,True,24,,"interview with the vampire | anne rice || the vampire lestat (vampire chronicles, book  || the queen of the damned (vampire chronicles ("
 Plural / word form,dragon,True,24,,red dragon | thomas harris || the bear and the dragon | tom clancy || eyes of the dragon | stephen king
-Two meanings,harr,True,17,Did you mean: harry,harry potter and the sorcerer's stone (harry  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
-Two meanings,sherlock,True,18,Also showing books by John Sherlock below.,the hound of the baskervilles (sherlock holme || adventures of sherlock holmes (wordsworth col || sherlock holmes : the complete novels and sto
+Two meanings,harr,True,19,Did you mean: harry,harry potter and the sorcerer's stone (harry  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
+Two meanings,sherlock,True,21,Also showing books by John Sherlock below.,the hound of the baskervilles (sherlock holme || adventures of sherlock holmes (wordsworth col || sherlock holmes : the complete novels and sto
 Two meanings,potter,True,34,Also showing books by Beatrix Potter below.,harry potter and the sorcerer's stone (harry  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
-Two meanings,herry potter,True,17,Also showing books by Jerry Potter below.,harry potter and the sorcerer's stone (harry  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
+Two meanings,herry potter,True,24,Showing results for “harry potter”.,harry potter and the sorcerer's stone | j.k.  || harry potter and the chamber of secrets | j.  || harry potter and the prisoner of azkaban (har
 Two meanings,kathleen rowling,True,24,Showing results for author: J. K. Rowling,harry potter and the sorcerer's stone (harry  || harry potter and the chamber of secrets (book || harry potter and the prisoner of azkaban (boo
 Two meanings,arthur,True,34,Showing results for author: Arthur C. Clarke,2010: odyssey two | arthur c. clarke || rendezvous with rama | arthur c. clarke || 2001: a space odyssey | arthur c. clarke
 Two meanings,ronald tolkien,True,24,Showing results for author: J.R.R. TOLKIEN,"the fellowship of the ring (the lord of the r || the hobbit : the enchanting prelude to the lo || the two towers (the lord of the rings, part 2"
-Not in our library,project hail mary,True,24,“project hail mary” isn't in our library yet. These are the closest matches.,"hail hail camp timberwood (r) | ellen conford || project cyclops | thomas hoover || the old soak, and hail and farewell | don mar"
+Newer book (2021 - Open Library),project hail mary,True,24,,project hail mary | andy weir || hail hail camp timberwood (r) | ellen conford || project cyclops | thomas hoover
+Not in our library,zorblax quintessence chronicles,True,24,“zorblax quintessence chronicles” isn't in our library yet. These are the closest matches.,quintessence | christine leov lealand || alexis zorba | kazantzakis || alexis zorba | nikos kazantzakis
 Nonsense,asdfghjk,True,0,No books match “asdfghjk”. Check the spelling or try different words.,
 Nonsense,qwertyuiop zxcv,True,0,No books match “qwertyuiop zxcv”. Check the spelling or try different words.,
