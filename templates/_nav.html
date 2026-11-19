@@ -1,6 +1,7 @@
 <nav class="topnav">
-  <a href="/" class="{{ 'active' if page not in ('top', 'shelf', 'read', 'admin') else '' }}">Search</a>
+  <a href="/" class="{{ 'active' if page not in ('top', 'shelf', 'read', 'admin', 'path') else '' }}">Search</a>
   <a href="/top" class="{{ 'active' if page == 'top' else '' }}">Top rated</a>
+  <a href="/path" class="{{ 'active' if page == 'path' else '' }}">Learning path</a>
   <a href="/shelf" class="{{ 'active' if page == 'shelf' else '' }}">My shelf <span class="shelf-count" id="shelf-count" hidden></span></a>
   <span class="streak" id="streak" hidden title="Days in a row you visited"></span>
   <button type="button" class="theme-btn" id="theme-btn" aria-label="Switch to night mode" title="Switch to night mode">🌙</button>

@@ -881,6 +881,7 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
     while math.prod(len(sl) for sl in slots) > 200:         # trim the longest list of choices (worst first)
         longest = max(range(len(slots)), key=lambda i: len(slots[i]))
         slots[longest] = slots[longest][:-1]
+    loose = []
     for combo in itertools.product(*slots):
         ids = base
         edits = 0
@@ -903,13 +904,19 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
             # "thomas cormen" is a real person (Thomas H. Cormen); "thomas corwin" is only a surname
             name_pop = float(max(exact_person)) * 10 if exact_person else 0.1 * float(sys['surname_fame'].get(last, 0))
         if ids is not None and len(ids) == 0 and name_pop < 200:
-            continue                              # these words never appear together in any book
+            # these words never appear together in one book ("calculus" + "engineers"): kept as a weak,
+            # word-by-word reading, used only when NO reading has all its words together
+            alone = sum(math.log10(1 + pop_of(docs_with(sys, fold(w).strip('.,!?;:"()')))) for w, e in combo if e)
+            loose.append((-25 * edits + 2 * alone, ' '.join(w for w, _ in combo)))
+            continue
         score = -25 * edits + 10 * math.log10(1 + max(together, name_pop))
         reading = ' '.join(w for w, _ in combo)
         pop_of_reading[reading] = together              # books that really contain all these words
         scored.append((score, reading))
     if not scored:
-        return []
+        if not loose:
+            return []
+        scored = loose                            # every word fixed on its own ("calculas for engeneers")
     scored.sort(reverse=True)
     best = scored[0][0]
     out = []
@@ -1919,8 +1926,59 @@ def character_series(query):
     return None
 
 
+BY_TOPIC = re.compile(r'(?:^|\s)by\s+(?P<author>[^,]+?)(?:\s+(?:about|on|with|featuring|where|that)\s+(?P<topic>.+))?$')
+
+
+def author_topic(query, sys, category_filter=None, free_only=False, top_k=24):
+    """'books by stephan king about clowns' -> that author's books, the ones closest to the topic first.
+    Returns (df, banner) or None when the sentence has no 'by <author> about <topic>' shape."""
+    m = BY_TOPIC.search(fold(query or '').strip())
+    if not m:
+        return None
+    tb = closest_title(sys, query, cutoff=92)
+    if tb:
+        return None                               # a real title with "by" in it ("stand by me", "death by chocolate")
+    reading = understand_query(m['author'], sys)
+    if reading.get('kind') != 'author':
+        return None
+    wd = sys['work_dedup']
+    books = wd[wd['author_norm'] == reading['author_norm']]
+    if category_filter in CATEGORY_GROUPS:
+        books = in_category(books, category_filter)
+    if free_only:
+        books = books[books['read_url'] != '']
+    books = books.drop_duplicates('dedup_key')
+    if not len(books):
+        return None
+    if not m['topic']:
+        # "books by stephen king": that author's books, most-read first (not books ABOUT Stephen King)
+        df = books.sort_values(['n_ratings', 'rating_count'], ascending=False).head(top_k).copy()
+        df['section'] = f"Books by {reading['author_name']}"
+        return df, f"Showing results for author: {reading['author_name']}"
+    topic = m['topic'].strip()
+    # closeness in meaning between the topic and each of the author's books (book vectors are unit length)
+    if 'emb_row_of_isbn' not in sys:
+        sys['emb_row_of_isbn'] = {isbn: i for i, isbn in enumerate(sys['isbn13_by_position']) if isinstance(isbn, str)}
+    qv = sys['model_embed'].encode([topic]).astype('float32')[0]
+    rows = [sys['emb_row_of_isbn'].get(i) for i in books['isbn13']]
+    emb = sys['embeddings']
+    sim = np.array([float(emb[r] @ qv) if r is not None else 0.0 for r in rows])
+    words = [w for w in re.findall(r'[a-z]+', fold(topic)) if w not in STOPWORDS and len(w) > 2]
+    text = (books['title'].fillna('') + ' ' + books['description'].fillna('')).map(fold)
+    word_hit = np.array([sum(1 for w in words if w[:5] in t) for t in text], dtype=float)
+    pop = np.log1p(pd.to_numeric(books['rating_count'], errors='coerce').fillna(0).to_numpy())
+    order = np.argsort(-(sim + 0.3 * word_hit + 0.02 * pop), kind='stable')
+    df = books.iloc[order].head(top_k).copy()
+    df['section'] = f"Books by {reading['author_name']}"
+    return df, f"Books by {reading['author_name']} about “{topic}”, closest match first."
+
+
 def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False, online=True):
-    """Public entry point: the search below, plus famous characters ("hermione" -> Harry Potter books)."""
+    """Public entry point: the search below, plus famous characters ("hermione" -> Harry Potter books)
+    and 'by <author> about <topic>' sentences."""
+    at = None if mood_filter else author_topic(query, sys, category_filter, free_only, top_k)
+    if at:
+        return add_why(at[0], query, at[1], category_filter), at[1]
     df, banner = _search_books(query, sys, mood_filter, category_filter, top_k, free_only, online)
     ch = character_series(query)
     if not ch or fold(ch[1]) == fold(query or '').strip():

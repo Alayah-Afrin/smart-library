@@ -29,7 +29,41 @@
 </form>
 {% endif %}
 
-    {% if page != 'top' %}
+{% if page == 'path' %}
+<form method="get" action="/path" class="search-form path-form" role="search">
+    <div class="search-wrap">
+        <input type="text" name="goal" value="{{ goal }}" aria-label="What do you want to learn?"
+               placeholder="e.g. I'm a 3rd-year student and want to learn machine learning from scratch" autofocus>
+    </div>
+    <button type="submit">Plan my route</button>
+</form>
+{% if not plan %}
+<p class="path-examples">Tell us what you want to learn and what you already know. Try:
+    <a href="/path?goal=I'm+a+3rd-year+student+and+want+to+learn+machine+learning+from+scratch">machine learning from scratch</a> ·
+    <a href="/path?goal=I+already+know+python+and+want+to+learn+web+development">web development (I know Python)</a> ·
+    <a href="/path?goal=learn+data+structures+and+algorithms">data structures &amp; algorithms</a> ·
+    <a href="/path?goal=economics">economics</a></p>
+{% elif plan.error %}
+<div class="suggestion">{{ plan.error }}</div>
+{% else %}
+<div class="suggestion">Your route for <b>{{ plan.subject|title }}</b>: {{ plan.steps|length }} steps, about {{ plan.weeks }} weeks of study{% if plan.background.year %} (as a {{ plan.background.year }}-year student, basics are a quick review){% endif %}. Tick each step when you finish it.</div>
+<ol class="path-steps" data-route="{{ plan.subject }}">
+    {% for s in plan.steps %}
+    <li class="path-step status-{{ s.status }}" data-step="{{ plan.subject }}|{{ s.label }}">
+        <label class="path-head">
+            <input type="checkbox" class="path-done" aria-label="Mark “{{ s.label }}” as done">
+            <span class="path-label">{{ loop.index }}. {{ s.label }}</span>
+            <span class="path-badge">{% if s.status == 'known' %}You know this · skip{% elif s.status == 'review' %}Quick review · about {{ [1, s.weeks // 2]|max }} week{{ 's' if s.weeks // 2 > 1 else '' }}{% else %}About {{ s.weeks }} weeks{% endif %}</span>
+        </label>
+        <p class="path-why">{{ s.why }}</p>
+        {% if s.books %}<div class="results">{% for book in s.books %}{% include '_card.html' %}{% endfor %}</div>{% endif %}
+    </li>
+    {% endfor %}
+</ol>
+{% endif %}
+{% endif %}
+
+    {% if page not in ('top', 'path') %}
         <form class="search-form" method="GET" action="/" role="search">
             <div class="search-wrap">
                 <input type="text" name="q" id="search-box" autocomplete="off" value="{{ query }}"
@@ -127,6 +161,26 @@
 
 <script src="{{ url_for('static', filename='shelf.js') }}"></script>
 <script src="{{ url_for('static', filename='community.js') }}"></script>
+<script>
+// learning path: finished steps are remembered in this browser only
+(function () {
+  const steps = document.querySelectorAll('.path-step');
+  if (!steps.length) return;
+  let done = [];
+  try { done = JSON.parse(localStorage.getItem('sl_path_done') || '[]'); } catch (e) { done = []; }
+  steps.forEach(li => {
+    const box = li.querySelector('.path-done'), id = li.dataset.step;
+    box.checked = done.includes(id);
+    li.classList.toggle('is-done', box.checked);
+    box.addEventListener('change', () => {
+      done = done.filter(x => x !== id);
+      if (box.checked) done.push(id);
+      li.classList.toggle('is-done', box.checked);
+      try { localStorage.setItem('sl_path_done', JSON.stringify(done)); } catch (e) { /* private mode */ }
+    });
+  });
+})();
+</script>
 
 
 <script>
@@ -213,6 +267,32 @@ function openDrawer(d) {
   drawer.setAttribute('aria-hidden', 'false');
   fillSummary(d, document.getElementById('drawer-text'));
   Community.render(document.getElementById('drawer-community'), d.key);
+  renderAlso(document.getElementById('drawer-community'), d.key);
+}
+
+// "Readers who liked this also liked": shared taste across many readers (never one person's list)
+async function renderAlso(container, key) {
+  if (!container || !key) return;
+  const old = container.parentNode.querySelector('.also-liked');
+  if (old) old.remove();
+  try {
+    const j = await (await fetch('/also?key=' + encodeURIComponent(key))).json();
+    if (!j.items || !j.items.length) return;
+    const box = document.createElement('div');
+    box.className = 'also-liked';
+    const h = document.createElement('h4');
+    h.textContent = 'Readers who liked this also liked';
+    const ul = document.createElement('ul');
+    j.items.forEach(it => {
+      const li = document.createElement('li'), a = document.createElement('a');
+      a.href = '/?q=' + encodeURIComponent(it.title);
+      a.textContent = it.title;
+      li.append(a, ' · ' + it.author);
+      ul.appendChild(li);
+    });
+    box.append(h, ul);
+    container.after(box);
+  } catch (e) { /* no suggestions: nothing to show */ }
 }
 
 function openFlyout(btn) {
@@ -241,6 +321,7 @@ function openFlyout(btn) {
   f.querySelector('.flyout-close').addEventListener('click', closeFlyouts);
   fillSummary(d, f.querySelector('.flyout-text'));
   Community.render(comm, d.key);
+  renderAlso(comm, d.key);
 }
 
 function wireSummaries(root) {

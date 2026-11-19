@@ -13,6 +13,9 @@ import community
 import reader
 import sentiment
 import pdfs
+import paths
+import also_liked
+import threading
 import fetch_data
 
 app = Flask(__name__)
@@ -45,6 +48,9 @@ import search as _search
 for _kind in ('title', 'author'):                # 'sounds like' lists for very misspelled searches, built now
     _search._sound_index(system, _kind)          # so the first such search is not slow
 community.init()
+# prepare the books for every learning-path step in the background, so routes appear instantly
+threading.Thread(target=paths.warm_up, args=(system,), daemon=True).start()
+also_liked.start(system, fetch_data.DATA_DIR)      # 'readers who liked this also liked', built in the background
 
 
 def backfill_sentiment():
@@ -263,6 +269,37 @@ def top():
     return render_template('index.html', results=results, suggestion=banner, query='', page='top',
                            category_groups=list(CATEGORY_GROUPS.keys()),
                            selected_category=category or '')
+
+
+@app.route('/path')
+def learning_path():
+    """Learning-path planner: "I'm a 3rd-year student and want to learn ML from scratch" -> a route of steps."""
+    goal = (request.args.get('goal') or '')[:300]
+    plan = None
+    if goal.strip():
+        plan = paths.plan(goal, system)
+        for step in plan.get('steps', []):
+            clean = [{k: ('' if isinstance(v, float) and v != v else v) for k, v in b.items()} for b in step['books']]
+            step['books'] = decorate(clean)
+    return render_template('index.html', page='path', plan=plan, goal=goal, results=[], query='',
+                           category_groups=list(CATEGORY_GROUPS.keys()), selected_category='')
+
+
+_BY_KEY = {}
+
+
+@app.route('/also')
+def also():
+    """'Readers who liked this also liked' for one book (counts across readers only, never anyone's list)."""
+    key = (request.args.get('key') or '')[:300]
+    keys = also_liked.also_liked(key)
+    if not keys:
+        return jsonify(items=[])
+    if not _BY_KEY:
+        wd = system['work_dedup'].drop_duplicates('dedup_key')
+        _BY_KEY.update(zip(wd['dedup_key'], zip(wd['title'], wd['author'])))
+    items = [{'title': _BY_KEY[k][0], 'author': _BY_KEY[k][1]} for k in keys if k in _BY_KEY]
+    return jsonify(items=items)
 
 
 @app.route('/shelf')
