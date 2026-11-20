@@ -18,6 +18,7 @@ Each prints `PASS` / `FAIL` lines and a total at the end.
 | `python tests/scenarios.py` | 94 searches covering every kind of thing people type (titles, typos, first names, two meanings, ISBN, joined words, nonsense…) | `94/94 searches gave a good answer` |
 | `python tests/evaluate.py` | Search quality on 44 test questions (score 0 to 1) | **Hybrid** line about **0.94** |
 | `python tests/filter_matrix.py` | 560 combinations: 40 searches × every category × Free on/off | `crashes: 0`, `category ignored: 0`, `free filter ignored: 0`, `confusing` ≤ 1 |
+| `python tests/typo_sweep.py --quick` | Takes real authors, titles and textbooks from the catalog (famous + random, every source) and searches each with mistakes: dropped / doubled / swapped / wrong-key letters, same-sound spellings (podder = potter), half-typed words, initials, surname only. Passes when the right book or author is in the top 10 | a pass rate per kind of mistake; failing queries are saved to `tests/typo_sweep_failed.txt` (drop `--quick` for the bigger run, about 25 minutes) |
 
 Any line starting with `FAIL` names exactly what broke.
 

@@ -804,6 +804,7 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
     slipped = set()        # words reached only through a wrong FIRST key ("orcy" -> percy)
     pop_of_reading = {}
     known_ids = []         # books for the correctly spelled, meaningful words
+    typed_real = []        # misspelled-looking words that ARE in our books (surnames: "podder", "harr")
     any_typo = False
     for tok in tokens:
         b = fold(tok).strip('.,!?;:"()')
@@ -820,8 +821,17 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
         maybe_typo = b not in sys['vocab'] or (len(own_ids) < 20 and not spell.known([b]))
         key = sounds_like(b)
         pool = []
+        sound_twins = set()    # words reached by swapping a doubled consonant for its twin sound
         if maybe_typo:
             pool = [c for c, _, _ in process.extract(b, sys['fix_words'], scorer=fuzz.ratio, score_cutoff=70, limit=60)]
+            # a doubled consonant swapped for its twin sound: "podder" = potter, "hobbit" typed "hoppit"
+            for old, new in (('dd', 'tt'), ('tt', 'dd'), ('bb', 'pp'), ('pp', 'bb'), ('gg', 'kk'), ('kk', 'gg')):
+                if old in b:
+                    twin = b.replace(old, new)
+                    extra = [c for c, _, _ in process.extract(twin, sys['fix_words'], scorer=fuzz.ratio,
+                                                              score_cutoff=90, limit=5)]
+                    sound_twins.update(extra)
+                    pool += extra
             for k in (KEY_NEIGHBOURS.get(b[0], '') if slips else ''):   # wrong first key: "orcy" -> "prcy" -> percy
                 pool += [c for c, _, _ in process.extract(k + b[1:], sys['fix_words'], scorer=fuzz.ratio,
                                                           score_cutoff=80, limit=10)]
@@ -852,9 +862,10 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
         own_pop = pop_of(own_ids)
         much_better = [c for c in cands if pop_of(docs_with(sys, c[0])) >= 10 * max(own_pop, 1)
                        and pop_of(docs_with(sys, c[0])) >= 200
-                       and (c[2] == 1 or not len(own_ids))]   # a word our books have: only 1 letter off ("hermione" stays)
+                       and (c[2] == 1 or not len(own_ids) or c[0] in sound_twins)]   # a word our books have: only 1 letter off ("hermione" stays), or the same sound ("podder" = potter)
         sfame = sys['surname_fame']
-        if b in sfame:
+        if b in sfame and len(tokens) == 1:
+            # (only for a one-word query: in "harr podder" the OTHER words decide, so "harry" stays a candidate)
             # typed exactly an author's surname ("cormen", "sipser", "mankiw"): it is only a typo when a far
             # better-known SURNAME is that close ("tolkin" -> Tolkien), never a common word ("carmen", "sister")
             much_better = [c for c in much_better if sfame.get(c[0], 0) >= 10 * max(sfame.get(b, 0), 1)]
@@ -864,8 +875,9 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
                             key=lambda c: -25 * c[1] + 10 * math.log10(1 + pop_of(docs_with(sys, c[0]))),
                             reverse=True)[:4]
             best_pop = max((pop_of(docs_with(sys, c[0])) for c in ranked), default=0)
-            if len(own_ids) and own_pop >= 0.03 * best_pop:
-                ranked.append((b, 1))              # as typed: a real but much less-read meaning ("harr")
+            if len(own_ids):
+                ranked.append((b, 1))              # as typed: a real but much less-read meaning ("harr", "podder")
+                typed_real.append(b)
             slots.append(ranked)
         else:
             slots.append([(tok, 0)])
@@ -943,7 +955,14 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
         out.append(query)
     if out == [query]:
         return []
-    return out[:4]
+    out = out[:4]
+    # a typed word that really is an author's surname stays one click away on its own ("podder" ->
+    # Tanushree Podder), next to the likelier reading ("harry potter")
+    sfame = sys['surname_fame']
+    for w in typed_real:
+        if w in sfame and w not in out and not any(w in q.split() for q in out):
+            out.append(w)
+    return out[:5]
 
 
 def _mention_index(sys):
@@ -1973,13 +1992,62 @@ def author_topic(query, sys, category_filter=None, free_only=False, top_k=24):
     return df, f"Books by {reading['author_name']} about “{topic}”, closest match first."
 
 
+def join_apostrophe_names(query, sys):
+    """"o'brien" -> "obrien", "d'angelo" -> "dangelo": the catalog files these surnames without the
+    apostrophe, and people type them with it. Only joined when an author really has the joined surname."""
+    def fix(m):
+        joined = fold(m.group(1) + m.group(2))
+        return joined if joined in sys['authors_by_name'] else m.group(0)
+    return re.sub(r"\b([od])['’]([a-zA-Z]{3,})\b", fix, query or '', flags=re.I)
+
+
+def exact_title_first(df, query):
+    """A title typed in full ("scala book") goes first when nothing at the top even contains all its words
+    (otherwise "La Scala" novels, read more, push the exact book down)."""
+    words = proc(query).split()
+    if len(words) < 2 or len(df) < 2 or 'title' not in df.columns:
+        return df
+    clean = df['title'].fillna('').map(lambda t: proc(re.split(r'[:(\[]', t)[0]))
+    exact = (clean == ' '.join(words)).to_numpy()
+    if not exact.any() or exact[:3].any():
+        return df
+    top_has_all = [all(w in proc(t).split() for w in words) for t in df['title'].fillna('').head(5)]
+    if any(top_has_all):
+        return df
+    out = pd.concat([df[exact], df[~exact]])
+    out.attrs.update(df.attrs)
+    return out
+
+
 def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False, online=True):
-    """Public entry point: the search below, plus famous characters ("hermione" -> Harry Potter books)
+    """Public entry point. Surnames with an apostrophe ("o'connell") are tried as typed first; when the top
+    authors don't have that surname, the joined spelling the catalog uses ("oconnell") is tried instead."""
+    out = _search_with_characters(query, sys, mood_filter, category_filter, top_k, free_only, online)
+    joined = join_apostrophe_names(query, sys)
+    if joined == query:
+        return out
+    surnames = [fold(m.group(1) + m.group(2)) for m in re.finditer(r"\b([od])['’]([a-zA-Z]{3,})\b", query, flags=re.I)]
+
+    def hits(df):
+        authors = [fold(a).replace("'", '') for a in df['author'].fillna('').head(3)] if 'author' in df.columns else []
+        return sum(1 for s in surnames for a in authors if s in a)
+
+    if hits(out[0]) >= 2:
+        return out
+    alt = _search_with_characters(joined, sys, mood_filter, category_filter, top_k, free_only, online)
+    return alt if hits(alt[0]) > hits(out[0]) else out
+
+
+def _search_with_characters(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False, online=True):
+    """The search below, plus famous characters ("hermione" -> Harry Potter books)
     and 'by <author> about <topic>' sentences."""
+    typed = query
     at = None if mood_filter else author_topic(query, sys, category_filter, free_only, top_k)
     if at:
         return add_why(at[0], query, at[1], category_filter), at[1]
     df, banner = _search_books(query, sys, mood_filter, category_filter, top_k, free_only, online)
+    df = exact_title_first(df, query)
+    query = typed                                  # characters ("d'arcy") are matched on what was typed
     ch = character_series(query)
     if not ch or fold(ch[1]) == fold(query or '').strip():
         return df, banner

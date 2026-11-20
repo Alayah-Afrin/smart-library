@@ -14,6 +14,17 @@ S.live_lookup = lambda *a, **k: []
 S.get_better_cover = lambda isbn, title, author, fallback: fallback
 
 TYPOS = [
+    # same-sound slips and real surnames inside a typo ("podder" is an author, but "potter" is meant)
+    ('Same-sound typo', 'harr podder', r'harry potter'),
+    ('Same-sound typo', 'harry podder', r'harry potter'),
+    ('Same-sound typo', 'harr poter', r'harry potter'),
+    # surnames with an apostrophe, typed the natural way
+    ('Apostrophe name', "o'connell", r"o'connell"),
+    ('Apostrophe name', "o'brien", r"o'brien"),
+    ('Apostrophe name', "o'connor", r"o'connor"),
+    ('Apostrophe name', "patrick o'brian", r"o'brian"),
+    # a title typed in full beats longer titles that only share one word
+    ('Exact title', 'scala book', r'scala book'),
     # author: initials + misspelled surname
     ('Author typo', 'jk rolimg', r'rowling'),
     ('Author typo', 'jk rowlng', r'rowling'),

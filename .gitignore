@@ -17,11 +17,15 @@ data/processed/
 data/sources/gutenberg.csv
 data/sources/opentextbooks.csv
 data/sources/otl_pages/
+data/sources/ol_modern_pages/
 data/processed/backup_before_sources/
 
 # Private runtime data: secret key, reader reviews, downloaded book texts
 instance/
 data/cache/
+
+# scratch output of tests/typo_sweep.py (the full results are in tests/typo_sweep.csv)
+tests/typo_sweep_failed.txt
 
 # Notebook checkpoints and editor files
 .ipynb_checkpoints/

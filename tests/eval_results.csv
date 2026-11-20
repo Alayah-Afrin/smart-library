@@ -55,7 +55,7 @@ author,agatha christie,Semantic,1.0,1.0,1.0,353,Agatha Christie: An Autobiograph
 author,agatha christie,Hybrid,1.0,1.0,1.0,353,And Then There Were None | Murder on the Orient Express (Hercule Poirot Mysteries (Paperback)) | And Then There Were None : A Novel
 author,jane austen,BM25,1.0,1.0,1.0,74,Bedside Jane Austen | A Jane Austen Miscellany | Great Novels of Jane Austen
 author,jane austen,Semantic,1.0,0.9363792118010481,1.0,74,"Emma (Penguin Popular Classics) | Bedside Jane Austen | Jane Austen, Her Complete Novels"
-author,jane austen,Hybrid,1.0,1.0,1.0,74,Pride and Prejudice | Sense and Sensibility | Emma (Penguin Popular Classics)
+author,jane austen,Hybrid,0.6,0.7510916729774053,1.0,74,Jane Austen: The Complete Novels | Jane Austen: A Life | Jane Austen (Penguin Lives)
 author,garcia marquez,BM25,1.0,1.0,1.0,110,Strange Pilgrims | Collected Stories | La hojarasca
 author,garcia marquez,Semantic,1.0,0.9216017310213246,1.0,110,LA Hojarasca | La Mala Hora | Por la Libre
 author,garcia marquez,Hybrid,1.0,1.0,1.0,110,One Hundred Years of Solitude (Oprah's Book Club) | Love in the Time of Cholera (Penguin Great Books of the 20th Century) | Of Love and Other Demons (Penguin Great Books of the 20th Century)
