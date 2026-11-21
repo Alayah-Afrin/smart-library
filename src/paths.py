@@ -111,7 +111,9 @@ SUBJECTS = {
 FILLER = STOPWORDS | {'learn', 'learning', 'study', 'studying', 'understand', 'master', 'get', 'into', 'started', 'start',
                       'scratch', 'from', 'beginner', 'beginners', 'basics', 'basic', 'how', 'year', 'student', 'im', "i'm",
                       'am', 'my', 'in', 'of', 'and', 'with', 'zero', 'complete', 'become', 'good', 'at', 'is', 'some',
-                      'know', 'already', 'familiar', 'what', 'should', 'need', 'help', 'path', 'roadmap', 'route', 'plan'}
+                      'know', 'already', 'familiar', 'what', 'should', 'need', 'help', 'path', 'roadmap', 'route', 'plan',
+                      'within', 'month', 'months', 'week', 'weeks', 'day', 'days', 'years', 'time', 'same', 'make', 'want',
+                      'way', 'quickly', 'fast'}
 ORDINAL_YEAR = re.compile(r'\b(1st|first|2nd|second|3rd|third|4th|fourth|final|last)\s+year\b|\b(senior|junior|sophomore)\b')
 FROM_SCRATCH = re.compile(r'\bfrom (scratch|zero|the beginning)\b|\b(beginner|new to|no experience|never)\b')
 KNOWS = re.compile(r"\b(?:i|i'm|im|already)\s+(?:already\s+)?(?:know|knows|learned|learnt|studied|am familiar with|familiar with|"
@@ -133,6 +135,89 @@ def find_subject(goal_f):
             if len(a) >= 6 and fuzz.partial_ratio(a, goal_f) >= 90:
                 return key
     return None
+
+
+def find_subjects(goal_f):
+    """-> every subject named in the goal, in the order they appear ("python and ml" -> programming, machine learning).
+    A longer alias claims its words first, so "neural networks" is deep learning, not computer networks."""
+    hits = []
+    for key, (aliases, _) in SUBJECTS.items():
+        for a in aliases:
+            for m in re.finditer(r'(?<!\w)' + re.escape(a) + r'(?!\w)', goal_f):
+                hits.append((len(a), m.start(), m.end(), key))
+    taken, found = [], []
+    for length, start, end, key in sorted(hits, key=lambda h: -h[0]):
+        if any(start < e and end > s for s, e in taken):
+            continue
+        taken.append((start, end))
+        found.append((start, key))
+    for m in re.finditer(r'[a-z0-9+#]+', goal_f):               # a misspelt one-word alias ("pythoin", "databse")
+        if any(m.start() < e and m.end() > s for s, e in taken) or len(m.group()) < 5:
+            continue
+        for key, (aliases, _) in SUBJECTS.items():
+            if any(' ' not in a and len(a) >= 5 and fuzz.ratio(a, m.group()) >= 85 for a in aliases):
+                found.append((m.start(), key))
+                break
+    keys = []
+    for _, key in sorted(found):
+        if key not in keys:
+            keys.append(key)
+    return keys
+
+
+NUMBER_WORDS = {'a': 1, 'an': 1, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7,
+                'eight': 8, 'nine': 9, 'ten': 10, 'twelve': 12}
+TIME_LIMIT = re.compile(r'\b(\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|twelve)[\s-]*'
+                        r'(day|days|week|weeks|month|months|year|years)\b')
+
+
+def time_budget(goal_f):
+    """"within 1 month" / "in 6 weeks" / "2 months" -> weeks, or None when no time limit is given."""
+    m = TIME_LIMIT.search(goal_f)
+    if not m:
+        return None
+    n = int(m.group(1)) if m.group(1).isdigit() else NUMBER_WORDS[m.group(1)]
+    unit = m.group(2)
+    weeks = {'day': n / 7, 'week': n, 'month': n * 4, 'year': n * 52}[unit.rstrip('s')]
+    return max(1, round(weeks)) if n else None
+
+
+def is_core(step_, keys):
+    """The step that IS the subject (machine learning -> 'Machine learning foundations'), not a prerequisite."""
+    label = fold(step_['label'])
+    for key in keys:
+        for a in SUBJECTS[key][0]:
+            if a in step_['words'] or re.search(r'(?<!\w)' + re.escape(a) + r'(?!\w)', label):
+                return True
+    return False
+
+
+def fit_to_budget(steps, keys, budget):
+    """The full route is longer than the time the student has: keep programming and the subject itself, mark the
+    rest 'later' (maths is picked up as it is needed), and share the weeks out. Returns the weeks used."""
+    todo = [s for s in steps if s['status'] != 'known']
+    if not todo:
+        return 0
+    protected = [s for s in todo if s['label'] == PROGRAMMING['label'] or is_core(s, keys)]
+    keep_n = max(len(protected), max(1, budget // 2))
+    droppable = [s for s in todo if s not in protected]
+    droppable.sort(key=lambda s: (not s['foundation'], -todo.index(s)))       # maths first, then the latest steps
+    while len(todo) > keep_n and droppable:
+        gone = droppable.pop(0)
+        gone['status'] = 'later'
+        todo.remove(gone)
+    base = {id(s): (s['weeks'] if s['status'] == 'learn' else max(1, s['weeks'] // 2)) for s in todo}
+    scale = budget / sum(base.values())
+    plan_weeks = {id(s): max(1, round(base[id(s)] * scale)) for s in todo}
+    while sum(plan_weeks.values()) > budget and max(plan_weeks.values()) > 1:
+        biggest = max(todo, key=lambda s: plan_weeks[id(s)])
+        plan_weeks[id(biggest)] -= 1
+    while sum(plan_weeks.values()) < budget:
+        biggest = max(todo, key=lambda s: base[id(s)])
+        plan_weeks[id(biggest)] += 1
+    for s in todo:
+        s['weeks'], s['status'] = plan_weeks[id(s)], 'learn'
+    return sum(plan_weeks.values())
 
 
 def read_background(goal_f):
@@ -248,9 +333,24 @@ def plan(goal, sys):
         return {'error': 'Tell us what you want to learn, e.g. "I\'m a 3rd-year student and want to learn ML from scratch".'}
     goal_f = fold(goal)
     background = read_background(goal_f)
-    key = find_subject(goal_f)
+    budget = time_budget(goal_f)
+    keys = find_subjects(goal_f)
+    if not keys and find_subject(goal_f):             # a close spelling ("machin learning")
+        keys = [find_subject(goal_f)]
+    key = keys[0] if keys else None
     if key:
-        label, steps = key, [dict(s) for s in SUBJECTS[key][1]]
+        # several subjects ("python and ml"): the longest route first, then the extra steps the others add
+        known_now = ' '.join(background['known'])                # "i already know python": not something to learn
+        learning = [k for k in keys if not any(re.search(r'(?<!\w)' + re.escape(a) + r'(?!\w)', known_now)
+                                               for a in SUBJECTS[k][0])]
+        keys = learning or keys
+        label = ' + '.join(keys)
+        steps, seen_labels = [], set()
+        for k in sorted(keys, key=lambda k: -len(SUBJECTS[k][1])):
+            for s in SUBJECTS[k][1]:
+                if s['label'] not in seen_labels:
+                    seen_labels.add(s['label'])
+                    steps.append(dict(s))
     else:
         label, steps = generic_route(goal_f)
         if not steps or not any(w in sys['vocab'] for w in topic_words(goal_f)):
@@ -265,12 +365,16 @@ def plan(goal, sys):
             s['status'] = 'known'                        # "i already know python"
         elif s['foundation'] and background['advanced_student']:
             s['status'] = 'review'                       # 3rd-year student: probably seen it, quick review
-        s['books'] = pick_books(sys, s['query'], used)
         if s['status'] != 'known':
             total += s['weeks'] if s['status'] == 'learn' else max(1, s['weeks'] // 2)
+    full_weeks, fast_track = total, False
+    if key and budget and total > budget:
+        total, fast_track = fit_to_budget(steps, keys, budget), True
+    for s in steps:
+        s['books'] = pick_books(sys, s['query'], used) if s['status'] != 'later' else []
     if not key:
         steps = [s for s in steps if s['books']]          # a generic step with no matching book is dropped
         if not steps:
             return {'error': f'We don\'t have books for "{label}" yet. Try a related subject or a simpler name.'}
     return {'subject': label, 'goal': goal, 'background': background, 'steps': steps, 'weeks': total,
-            'mapped': key is not None}
+            'mapped': key is not None, 'budget': budget, 'fast_track': fast_track, 'full_weeks': full_weeks}

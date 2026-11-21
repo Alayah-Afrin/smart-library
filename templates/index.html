@@ -46,14 +46,18 @@
 {% elif plan.error %}
 <div class="suggestion">{{ plan.error }}</div>
 {% else %}
-<div class="suggestion">Your route for <b>{{ plan.subject|title }}</b>: {{ plan.steps|length }} steps, about {{ plan.weeks }} weeks of study{% if plan.background.year %} (as a {{ plan.background.year }}-year student, basics are a quick review){% endif %}. Tick each step when you finish it.</div>
+{% if plan.fast_track %}
+<div class="suggestion">Fast track for <b>{{ plan.subject|title }}</b> in {{ plan.weeks }} weeks. The full route takes about {{ plan.full_weeks }} weeks, so this plan keeps the essentials and moves the rest to “Later”. It is tight, so study a little every day, and pick up the maths as you need it. Tick each step when you finish it.</div>
+{% else %}
+<div class="suggestion">Your route for <b>{{ plan.subject|title }}</b>: {{ plan.steps|length }} steps, about {{ plan.weeks }} weeks of study{% if plan.background.year %} (as a {{ plan.background.year }}-year student, basics are a quick review){% endif %}.{% if plan.budget %} Your {{ plan.budget }}-week limit is enough for the full route.{% endif %} Tick each step when you finish it.</div>
+{% endif %}
 <ol class="path-steps" data-route="{{ plan.subject }}">
     {% for s in plan.steps %}
     <li class="path-step status-{{ s.status }}" data-step="{{ plan.subject }}|{{ s.label }}">
         <label class="path-head">
             <input type="checkbox" class="path-done" aria-label="Mark “{{ s.label }}” as done">
             <span class="path-label">{{ loop.index }}. {{ s.label }}</span>
-            <span class="path-badge">{% if s.status == 'known' %}You know this · skip{% elif s.status == 'review' %}Quick review · about {{ [1, s.weeks // 2]|max }} week{{ 's' if s.weeks // 2 > 1 else '' }}{% else %}About {{ s.weeks }} weeks{% endif %}</span>
+            <span class="path-badge">{% if s.status == 'known' %}You know this · skip{% elif s.status == 'later' %}Later · learn as you need it{% elif s.status == 'review' %}Quick review · about {{ [1, s.weeks // 2]|max }} week{{ 's' if s.weeks // 2 > 1 else '' }}{% else %}About {{ s.weeks }} weeks{% endif %}</span>
         </label>
         <p class="path-why">{{ s.why }}</p>
         {% if s.books %}<div class="results">{% for book in s.books %}{% include '_card.html' %}{% endfor %}</div>{% endif %}
