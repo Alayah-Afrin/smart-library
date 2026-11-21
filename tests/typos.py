@@ -14,6 +14,62 @@ S.live_lookup = lambda *a, **k: []
 S.get_better_cover = lambda isbn, title, author, fallback: fallback
 
 TYPOS = [
+    # symbols and punctuation around or inside the words are noise
+    ('Symbols', 'harry potter!!', r'harry potter'),
+    ('Symbols', 'harry potter?', r'harry potter'),
+    ('Symbols', 'harry.potter', r'harry potter'),
+    ('Symbols', 'harry,potter', r'harry potter'),
+    ('Symbols', 'harry $potter', r'harry potter'),
+    ('Symbols', '"harry potter"', r'harry potter'),
+    ('Symbols', '#harrypotter', r'harry potter'),
+    ('Symbols', 'harry potter&the chamber of secrets', r'chamber of secrets'),
+    ('Symbols', 'stephen king!!!', r'stephen king'),
+    ('Symbols', 'agatha christie???', r'christie'),
+    ('Look-alike digits', 'h4rry pott3r', r'harry potter'),
+    ('Look-alike digits', 'h@rry p0tter', r'harry potter'),
+    ('Look-alike digits', 'st3phen k1ng', r'stephen king'),
+    ('Look-alike digits', 'agatha chr1stie', r'christie'),
+    ('Look-alike digits', 'sh4kespeare', r'shakespeare'),
+    ('Real number stays', 'catch 22', r'catch.22'),
+    ('Real number stays', '1984', r'1984'),
+    ('Real number stays', 'fahrenheit 451', r'fahrenheit 451'),
+    # a typo that is itself a real catalog word ("poder" is Spanish for power), and d/t, b/p, g/k, v/f sound pairs
+    ('Real-word typo', 'harri poder', r'harry potter'),
+    ('Real-word typo', 'herry poder', r'harry potter'),
+    ('Real-word typo', 'harry poder', r'harry potter'),
+    ('Real-word typo', 'hari poder', r'harry potter'),
+    ('Real-word typo', 'hari potter', r'harry potter'),
+    ('Real-word typo', 'harri poter', r'harry potter'),
+    # two REAL words that are one step from a far better-read phrase: the phrase must be offered ("Did you mean")
+    ('Real-word phrase', 'harry power', r'harry potter'),
+    ('Real-word phrase', 'harry poer', r'harry potter'),
+    ('Real-word phrase', 'sherlock home', r'sherlock holmes'),
+    ('Real-word phrase', 'hunger game', r'hunger games'),
+    ('Real-word phrase', 'game of throne', r'game of thrones'),
+    ('Real-word phrase', 'lord of the ring', r'lord of the rings'),
+    ('Real-word phrase', 'stephen kin', r'stephen king'),
+    # half typed, like a search box that finishes your words
+    ('Half typed', 'harry p', r'harry potter'),
+    ('Half typed', 'george o', r'orwell'),
+    ('Half typed', 'ernest h', r'hemingway'),
+    ('Half typed', 'game of t', r'game of thrones'),
+    ('Half typed', 'machine l', r'machine learning'),
+    ('Half typed', 'war and p', r'war and peace'),
+    ('Half typed', 'to kill a m', r'mockingbird'),
+    ('Half typed', 'stephe', r'stephen'),
+    ('Half typed', 'operatin', r'operating'),
+    # the FIRST letter is wrong: a key next to it, a vowel, two letters swapped
+    ('First letter wrong', 'the great fatsby', r'gatsby'),
+    ('First letter wrong', 'oercy jackson', r'percy jackson|lightning thief|riordan'),
+    ('First letter wrong', 'eperating systems', r'operating system'),
+    ('First letter wrong', 'garry potter', r'harry potter'),
+    ('First letter wrong', 'jane uasten', r'austen'),
+    ('Sound pair', 'dolkien', r'tolkien'),
+    ('Sound pair', 'pride and brejudice', r'pride and prejudice'),
+    ('Sound pair', 'the great kadsby', r'gatsby'),
+    ('Sound pair', 'jane ausden', r'austen'),
+    ('Sound pair', 'charles tickens', r'dickens'),
+    ('Sound pair', 'agatha christy', r'christie'),
     # same-sound slips and real surnames inside a typo ("podder" is an author, but "potter" is meant)
     ('Same-sound typo', 'harr podder', r'harry potter'),
     ('Same-sound typo', 'harry podder', r'harry potter'),
@@ -171,6 +227,9 @@ if __name__ == '__main__':
             ok = expect[1] in (banner or '').lower()
         else:
             ok = len(df) > 0 and any(re.search(expect, x) for x in top)
+            if not ok and kind == 'Real-word phrase':        # the typed words are real: offered as a "Did you mean" link
+                links = (df.attrs.get('suggestions') or []) + (df.attrs.get('alternatives') or [])
+                ok = any(re.search(expect, S.fold(s)) for s in links)
         rows.append({'kind': kind, 'query': q, 'ok': ok, 'sec': round(sec, 2), 'banner': (banner or '')[:90],
                      'top': ' || '.join(x.split(' | ')[0][:40] + ' / ' + x.split(' | ')[1][:20] for x in top[:3])})
     res = pd.DataFrame(rows)

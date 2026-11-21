@@ -1,0 +1,408 @@
+phrase,kind,query,ok,links,dead_links,banner
+harry potter,first word: start of word,garry potter,True,harry potter,,Showing results for “harry potter”.
+harry potter,first word: end of word,harr potter,True,harry potter | harr,,Showing results for “harry potter”.
+harry potter,first word: vowel slip,hyrry potter,True,harry potter,,Showing results for “harry potter”.
+harry potter,first word: two wrong letters,gary potter,False,,,“gary potter” isn't in our library yet. These are the closest matches.
+harry potter,first word: heavy,ahrr potter,True,harry potter | arr potter | harr potter,,Showing results for “harry potter”.
+harry potter,last word: start of word,harry ppotter,True,harry potter,,Showing results for “harry potter”.
+harry potter,last word: middle of word,harry poter,True,harry potter | harry peter,,Showing results for “harry potter”.
+harry potter,last word: end of word,harry pottre,True,harry potter,,Showing results for “harry potter”.
+harry potter,last word: vowel slip,harry pytter,True,harry potter,,Showing results for “harry potter”.
+harry potter,last word: two wrong letters,harry ppotter,True,harry potter,,Showing results for “harry potter”.
+harry potter,last word: heavy,harry pppotter,True,harry potter,,Showing results for “harry potter”.
+harry potter,all words: small,harrry poter,True,harry potter | harry peter,,Showing results for “harry potter”.
+harry potter,all words: vowel slips,harru patter,True,harry potter,,Showing results for “harry potter”.
+harry potter,all words: heavy,harry pottt,True,harry potter | harry pot | harry pott,,Showing results for “harry potter”.
+harry potter,first half only,harry p,True,harry potter,,Showing results for “harry potter”.
+stephen king,first word: start of word,tsephen king,True,stephen king,,Showing results for author: Stephen King
+stephen king,first word: middle of word,stehpen king,True,stephen king | steen king,,Showing results for author: Stephen King
+stephen king,first word: end of word,stephem king,True,stephen king | stephens king,,Showing results for author: Stephen King
+stephen king,first word: vowel slip,stephon king,True,stephen king | stephan king,,Showing results for author: Stephen King
+stephen king,first word: two wrong letters,steppphen king,True,stephen king | stephens king,,Showing results for author: Stephen King
+stephen king,first word: heavy,dtepen king,False,deen king,,Showing results for author: Dean King
+stephen king,last word: start of word,stephen ing,False,,,“stephen ing” isn't in our library yet. These are the closest matches.
+stephen king,last word: middle of word,stephen kign,True,stephen king | stephen kin,,Showing results for author: Stephen King
+stephen king,last word: end of word,stephen kingg,True,stephen king,,Showing results for author: Stephen King
+stephen king,last word: vowel slip,stephen keng,True,stephen king | stephen kent,,Showing results for author: Stephen King
+stephen king,last word: two wrong letters,stephen kin,True,stephen king,,Showing results for author: Stephen King
+stephen king,last word: heavy,stephen kihn,True,,,Showing results for author: Stephen King
+stephen king,all words: small,stehpen kig,True,stephen king | stephen kig | steven kig,,Showing results for author: Stephen King
+stephen king,all words: vowel slips,stophen kang,True,stephen king,,Showing results for author: Stephen King
+stephen king,all words: heavy,dtehpeb kigb,False,,,“dtehpeb kigb” isn't in our library yet. These are the closest matches.
+stephen king,first half only,stephe,True,stephen | steve | stephens,,Showing results for author: Stephen King
+jane austen,first word: start of word,ane austen,True,,,Searched for: Jane Austen
+jane austen,first word: middle of word,janne austen,True,jane austen | joanne austen,,Showing results for author: Jane Austen
+jane austen,first word: end of word,janw austen,True,jane austen | jan austen,,Showing results for author: Jane Austen
+jane austen,first word: vowel slip,june austen,True,jane austen,,Showing results for author: Jane Austen
+jane austen,first word: two wrong letters,jaeen austen,True,jane austen | jaine austen,,Showing results for author: Jane Austen
+jane austen,first word: heavy,jaenn austen,True,jane austen | jann austen | jaen austen,,Showing results for author: Jane Austen
+jane austen,last word: start of word,jane uasten,True,jane austen,,Showing results for author: Jane Austen
+jane austen,last word: middle of word,jane ausyen,True,jane austen,,Showing results for author: Jane Austen
+jane austen,last word: end of word,jane austem,True,jane austen,,Showing results for author: Jane Austen
+jane austen,last word: vowel slip,jane iusten,True,jane austen,,Showing results for author: Jane Austen
+jane austen,last word: two wrong letters,jane aaussten,True,jane austen | jane austin,,Showing results for author: Jane Austen
+jane austen,last word: heavy,jane uastennn,True,,,“jane uastennn” isn't in our library yet. These are the closest matches.
+jane austen,all words: small,jame ausen,True,jane austen | james austen,,Showing results for author: Jane Austen
+jane austen,all words: vowel slips,june auston,True,jane austen | jane austin,,Showing results for author: Jane Austen
+jane austen,all words: heavy,jawn auste,True,jane austen | jan austen,,Showing results for author: Jane Austen
+jane austen,first half only,jane a,True,jane austen,,Showing results for author: Jane Austen
+agatha christie,first word: start of word,gaatha christie,True,agatha christie | katha christie,,Showing results for author: Agatha Christie
+agatha christie,first word: middle of word,agahta christie,True,agatha christie,,Showing results for author: Agatha Christie
+agatha christie,first word: end of word,agath christie,True,agatha christie | agah christie,,Showing results for author: Agatha Christie
+agatha christie,first word: vowel slip,egatha christie,True,agatha christie,,Showing results for author: Agatha Christie
+agatha christie,first word: two wrong letters,gaaha christie,True,agatha christie,,Showing results for author: Agatha Christie
+agatha christie,first word: heavy,gahaa christie,True,agatha christie,,Showing results for author: Agatha Christie
+agatha christie,last word: start of word,agatha hristie,True,agatha christie,,Showing results for author: Agatha Christie
+agatha christie,last word: middle of word,agatha chriatie,True,agatha christie,,Showing results for author: Agatha Christie
+agatha christie,last word: end of word,agatha christi,True,agatha christie,,Showing results for author: Agatha Christie
+agatha christie,last word: vowel slip,agatha chrystie,True,agatha christie,,Showing results for author: Agatha Christie
+agatha christie,last word: two wrong letters,agatha chrisstir,True,agatha christie,,Showing results for author: Agatha Christie
+agatha christie,last word: heavy,agatha hcrtiie,False,,,“agatha hcrtiie” isn't in our library yet. These are the closest matches.
+agatha christie,all words: small,agahta chriatie,True,agatha christie | agata christie,,Showing results for author: Agatha Christie
+agatha christie,all words: vowel slips,egatha christio,True,agatha christie | eartha christie,,Showing results for author: Agatha Christie
+agatha christie,all words: heavy,agathq xhristu,True,agatha christie | agatha christ,,Showing results for author: Agatha Christie
+agatha christie,first half only,agatha c,True,agatha christie,,Showing results for author: Agatha Christie
+george orwell,first word: start of word,heorge orwell,True,george orwell | herge orwell,,Showing results for author: George Orwell
+george orwell,first word: middle of word,georrge orwell,True,george orwell,,Showing results for author: George Orwell
+george orwell,first word: end of word,georgw orwell,True,george orwell,,Showing results for author: George Orwell
+george orwell,first word: vowel slip,georgy orwell,True,george orwell | georgy,,Showing results for author: George Orwell
+george orwell,first word: two wrong letters,georrgw orwell,True,george orwell,,Showing results for author: George Orwell
+george orwell,first word: heavy,egorge orwell,True,george orwell,,Showing results for author: George Orwell
+george orwell,last word: start of word,george rwell,True,george orwell | george rowell,,Showing results for author: George Orwell
+george orwell,last word: middle of word,george orwrll,True,george orwell,,Showing results for author: George Orwell
+george orwell,last word: end of word,george orwelk,True,george orwell,,Showing results for author: George Orwell
+george orwell,last word: vowel slip,george orwull,True,george orwell,,Showing results for author: George Orwell
+george orwell,last word: two wrong letters,george orweelk,True,george orwell,,Showing results for author: George Orwell
+george orwell,last word: heavy,george oorwwwell,True,george orwell,,Showing results for author: George Orwell
+george orwell,all words: small,geogre orwll,True,george orwell,,Showing results for author: George Orwell
+george orwell,all words: vowel slips,geirge arwell,True,george orwell,,Showing results for author: George Orwell
+george orwell,all words: heavy,georerge orwle,True,george orwell | george orwle,,Showing results for author: George Orwell
+george orwell,first half only,george o,True,george orwell,,Showing results for author: George Orwell
+sherlock holmes,first word: start of word,ssherlock holmes,True,sherlock holmes | sherlock home,,Showing results for “sherlock holmes”.
+sherlock holmes,first word: middle of word,sherllock holmes,True,sherlock holmes | sherlock home,,Showing results for “sherlock holmes”.
+sherlock holmes,first word: end of word,sherlockk holmes,True,sherlock holmes | sherlock home,,Showing results for “sherlock holmes”.
+sherlock holmes,first word: vowel slip,shirlock holmes,True,sherlock holmes | sherlock home,,Showing results for “sherlock holmes”.
+sherlock holmes,first word: two wrong letters,sherolkc holmes,True,sherlock holmes | sherlock home,,Showing results for “sherlock holmes”.
+sherlock holmes,first word: heavy,herlocjj holmes,True,sherlock holmes,,Showing results for “sherlock holmes”.
+sherlock holmes,last word: start of word,sherlock olmes,True,sherlock holmes,,Showing results for “sherlock holmes”.
+sherlock holmes,last word: middle of word,sherlock holmmes,True,sherlock holmes,,Showing results for “sherlock holmes”.
+sherlock holmes,last word: end of word,sherlock holmse,True,sherlock holmes | sherlock holms,,Showing results for “sherlock holmes”.
+sherlock holmes,last word: vowel slip,sherlock helmes,True,sherlock holmes,,Showing results for “sherlock holmes”.
+sherlock holmes,last word: two wrong letters,sherlock golmess,True,,,“sherlock golmess” isn't in our library yet. These are the closest matches.
+sherlock holmes,last word: heavy,sherlock olmde,True,,,“sherlock olmde” isn't in our library yet. These are the closest matches.
+sherlock holmes,all words: small,sherkock holems,True,sherlock holmes | sherlock holms,,Showing results for “sherlock holmes”.
+sherlock holmes,all words: vowel slips,shyrlock hylmes,True,sherlock holmes,,Showing results for “sherlock holmes”.
+sherlock holmes,all words: heavy,sherrlo hholme,False,sherry home | sherryl home,,Showing results for “sherry home”.
+sherlock holmes,first half only,sherloc,True,sherlock | shelov,,Showing results for “sherlock”. Also showing books by John Sherlock below.
+lord of the rings,first word: start of word,ord of the rings,True,,,Searched for: Bored of the Rings
+lord of the rings,first word: middle of word,lotd of the rings,True,lord of the rings,,Showing results for “lord of the rings”.
+lord of the rings,first word: end of word,lor of the rings,True,,,
+lord of the rings,first word: vowel slip,lerd of the rings,True,lord of the rings,,Showing results for “lord of the rings”.
+lord of the rings,first word: two wrong letters,kodr of the rings,True,kor of the rings | korr of the rings | kody of the rings,,Showing results for “kor of the rings”.
+lord of the rings,first word: heavy,lro of the rings,True,,,
+lord of the rings,last word: start of word,lord of the eings,True,lord of the beings | lord of the eines,,Showing results for “lord of the beings”.
+lord of the rings,last word: middle of word,lord of the rimgs,True,lord of the rings,,Showing results for “lord of the rings”.
+lord of the rings,last word: end of word,lord of the rinsg,True,lord of the rings | lord of the ring,,Showing results for “lord of the rings”.
+lord of the rings,last word: vowel slip,lord of the ryngs,True,lord of the rings,,Showing results for “lord of the rings”.
+lord of the rings,last word: two wrong letters,lord of the rinngss,True,lord of the rings | lord of the ring,,Showing results for “lord of the rings”.
+lord of the rings,last word: heavy,lord of the risg,True,lord of the ring,,Showing results for “lord of the ring”.
+lord of the rings,all words: small,loed of the rinngs,True,lord of the rings | lord of the ring,,Showing results for “lord of the rings”.
+lord of the rings,all words: vowel slips,lard of the rongs,True,lord of the rings,,Showing results for “lord of the rings”.
+lord of the rings,all words: heavy,llordd of the rinngss,True,lord of the rings | lords of the rings,,Showing results for “lord of the rings”.
+lord of the rings,first half only,lord of t,False,lord of the flies,,Showing results for “lord of the flies”.
+pride and prejudice,first word: start of word,ride and prejudice,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,first word: middle of word,prdie and prejudice,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,first word: end of word,pried and prejudice,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,first word: vowel slip,prede and prejudice,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,first word: two wrong letters,rpidr and prejudice,True,,,Searched for: Pride and Prejudice
+pride and prejudice,first word: heavy,lrude and prejudice,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,last word: start of word,pride and lrejudice,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,last word: middle of word,pride and prejduice,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,last word: end of word,pride and prejudic,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,last word: vowel slip,pride and prejudico,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,last word: two wrong letters,pride and prejuudicw,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,last word: heavy,pride and eejusice,True,,,“pride and eejusice” isn't in our library yet. These are the closest matches.
+pride and prejudice,all words: small,prdie and prejidice,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,all words: vowel slips,pryde and prejudico,True,pride and prejudice | pryde,,Showing results for “pride and prejudice”.
+pride and prejudice,all words: heavy,ordie and orejdic,True,pride and prejudice,,Showing results for “pride and prejudice”.
+pride and prejudice,first half only,pride and p,True,pride and prejudice,,Showing results for “pride and prejudice”.
+the great gatsby,first word: start of word,the ggreat gatsby,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,first word: middle of word,the grat gatsby,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,first word: end of word,the grear gatsby,True,the great gatsby | grear,,Showing results for “the great gatsby”.
+the great gatsby,first word: vowel slip,the greet gatsby,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,first word: two wrong letters,the graett gatsby,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,first word: heavy,the ggreeat gatsby,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,last word: start of word,the great fatsby,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,last word: middle of word,the great gatssby,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,last word: end of word,the great gatsbyy,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,last word: vowel slip,the great gatsbi,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,last word: two wrong letters,the great gatsbyy,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,last word: heavy,the great gatbyy,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,all words: small,the grat gatby,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,all words: vowel slips,the gryat gatsbe,True,the great gatsby,,Showing results for “the great gatsby”.
+the great gatsby,all words: heavy,the grta fatsyv,True,the great gatsby | the greta fats | the grt fats | the gita fats,,Showing results for “the great gatsby”.
+the great gatsby,first half only,the grea,True,the great | the greg | the grey | the grew,,Showing results for “the great”.
+to kill a mockingbird,first word: start of word,to kkill a mockingbird,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,first word: end of word,to kilk a mockingbird,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,first word: vowel slip,to kall a mockingbird,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,first word: two wrong letters,to jil a mockingbird,True,,,Searched for: To Kill a Mockingbird
+to kill a mockingbird,first word: heavy,to iklll a mockingbird,True,,,Searched for: To Kill a Mockingbird
+to kill a mockingbird,last word: start of word,to kill a nockingbird,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,last word: middle of word,to kill a mockignbird,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,last word: end of word,to kill a mockingbirdd,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,last word: vowel slip,to kill a mickingbird,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,last word: two wrong letters,to kill a mockigbirf,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,last word: heavy,to kill a nockinngbirs,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,all words: small,to kil a mockimgbird,True,to kill a mockingbird | to kil a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,all words: vowel slips,to kull a mockyngbird,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+to kill a mockingbird,all words: heavy,to kill a onckingbir,True,,,Searched for: To Kill a Mockingbird
+to kill a mockingbird,first half only,to kill a m,True,to kill a mockingbird,,Showing results for “to kill a mockingbird”.
+mark twain,first word: start of word,amrk twain,True,mark twain,,Showing results for author: MARK TWAIN
+mark twain,first word: middle of word,mak twain,True,,,Showing results for author: MARK TWAIN
+mark twain,first word: end of word,marj twain,True,mark twain | mary twain,,Showing results for author: MARK TWAIN
+mark twain,first word: vowel slip,merk twain,True,mark twain,,Showing results for author: MARK TWAIN
+mark twain,first word: two wrong letters,markj twain,True,mark twain,,Showing results for author: MARK TWAIN
+mark twain,first word: heavy,nakr twain,True,mark twain,,Showing results for author: MARK TWAIN
+mark twain,last word: start of word,mark ttwain,True,mark twain,,Showing results for author: MARK TWAIN
+mark twain,last word: middle of word,mark twin,True,,,Showing results for author: MARK TWAIN
+mark twain,last word: end of word,mark twainn,True,mark twain,,Showing results for author: MARK TWAIN
+mark twain,last word: vowel slip,mark twein,True,mark twain,,Showing results for author: MARK TWAIN
+mark twain,last word: two wrong letters,mark ttwai,True,,,Showing results for author: MARK TWAIN
+mark twain,last word: heavy,mark twan,True,mark twain,,Showing results for author: MARK TWAIN
+mark twain,all words: small,marrk twian,True,mark twain | mark twin,,Showing results for author: MARK TWAIN
+mark twain,all words: vowel slips,merk twaan,True,mark twain,,Showing results for author: MARK TWAIN
+mark twain,all words: heavy,mra twinn,True,mark twain,,Showing results for author: MARK TWAIN
+mark twain,first half only,mark t,True,mark twain,,Showing results for author: MARK TWAIN
+charles dickens,first word: start of word,ccharles dickens,True,charles dickens,,Showing results for author: Charles Dickens
+charles dickens,first word: middle of word,charrles dickens,True,charles dickens,,Showing results for author: Charles Dickens
+charles dickens,first word: end of word,charlse dickens,True,charles dickens,,Showing results for author: Charles Dickens
+charles dickens,first word: vowel slip,charlus dickens,True,charles dickens,,Showing results for author: Charles Dickens
+charles dickens,first word: two wrong letters,hcarle dickens,True,charles dickens | harle dickens | hearle dickens,,Showing results for author: Charles Dickens
+charles dickens,first word: heavy,cchatless dickens,True,charles dickens,,Showing results for author: Charles Dickens
+charles dickens,last word: start of word,charles ddickens,True,charles dickens | charles dicken,,Showing results for author: Charles Dickens
+charles dickens,last word: middle of word,charles dicens,True,charles dickens | charles dice,,Showing results for author: Charles Dickens
+charles dickens,last word: end of word,charles dickesn,True,charles dickens | charles dicken,,Showing results for author: Charles Dickens
+charles dickens,last word: vowel slip,charles duckens,True,charles dickens | charles duchess,,Showing results for author: Charles Dickens
+charles dickens,last word: two wrong letters,charles dicnes,True,charles dickens,,Showing results for author: Charles Dickens
+charles dickens,last word: heavy,charles ddicejns,True,charles dickens,,Showing results for author: Charles Dickens
+charles dickens,all words: small,chaeles dicekns,True,charles dickens | charles dicken,,Showing results for author: Charles Dickens
+charles dickens,all words: vowel slips,chorles dickans,True,charles dickens,,Showing results for author: Charles Dickens
+charles dickens,all words: heavy,cchalrse ickens,True,charles dickens | chase dickens,,Showing results for author: Charles Dickens
+charles dickens,first half only,charles d,True,charles dickens,,Showing results for author: Charles Dickens
+machine learning,first word: start of word,nachine learning,True,machine learning,,Showing results for “machine learning”.
+machine learning,first word: middle of word,macihne learning,True,machine learning,,Showing results for “machine learning”.
+machine learning,first word: end of word,machien learning,True,machine learning,,Showing results for “machine learning”.
+machine learning,first word: vowel slip,machane learning,True,machine learning,,Showing results for “machine learning”.
+machine learning,first word: two wrong letters,achien learning,True,achen learning,,Showing results for “achen learning”.
+machine learning,first word: heavy,macine learning,True,machine learning,,Showing results for “machine learning”.
+machine learning,last word: start of word,machine kearning,True,machine learning,,Showing results for “machine learning”.
+machine learning,last word: middle of word,machine learming,True,machine learning,,Showing results for “machine learning”.
+machine learning,last word: end of word,machine learnign,True,machine learning,,Showing results for “machine learning”.
+machine learning,last word: vowel slip,machine liarning,True,machine learning,,Showing results for “machine learning”.
+machine learning,last word: two wrong letters,machine learnim,True,machine learning | machine learn,,Showing results for “machine learning”.
+machine learning,last word: heavy,machine elairng,True,machine ealing,,Showing results for “machine ealing”.
+machine learning,all words: small,macgine learbing,True,machine learning,,Showing results for “machine learning”.
+machine learning,all words: vowel slips,mochine learneng,True,machine learning | machines learning,,Showing results for “machine learning”.
+machine learning,all words: heavy,nacihnw elarning,False,,,No exact match for “nacihnw elarning”. These are the closest guesses.
+machine learning,first half only,machine l,True,machine learning,,Showing results for “machine learning”.
+python programming,first word: start of word,ython programming,True,python programming,,Showing results for “python programming”.
+python programming,first word: middle of word,pytohn programming,True,python programming,,Showing results for “python programming”.
+python programming,first word: end of word,pythno programming,True,python programming,,Showing results for “python programming”.
+python programming,first word: vowel slip,pithon programming,True,python programming | pilon programming,,Showing results for “python programming”.
+python programming,first word: two wrong letters,pytton programming,True,python programming,,Showing results for “python programming”.
+python programming,first word: heavy,pytlhn programming,True,python programming,,Showing results for “python programming”.
+python programming,last word: start of word,python pprogramming,True,python programming,,Showing results for “python programming”.
+python programming,last word: middle of word,python progrqmming,True,python programming,,Showing results for “python programming”.
+python programming,last word: end of word,python programmign,True,python programming,,Showing results for “python programming”.
+python programming,last word: vowel slip,python pregramming,True,python programming,,Showing results for “python programming”.
+python programming,last word: two wrong letters,python programmmingg,True,python programming,,Showing results for “python programming”.
+python programming,last word: heavy,python progranmignn,True,python programming,,Showing results for “python programming”.
+python programming,all words: small,pytohn prograamming,True,python programming,,Showing results for “python programming”.
+python programming,all words: vowel slips,pethon pregramming,True,python programming,,Showing results for “python programming”.
+python programming,all words: heavy,pytron rpogrmamingg,True,python rpogrmamingg,,Showing results for “python rpogrmamingg”.
+python programming,first half only,python pr,True,python programming,,Showing results for “python programming”.
+data structures,first word: start of word,adta structures,True,data structures,,Showing results for “data structures”.
+data structures,first word: middle of word,daya structures,True,,,
+data structures,first word: end of word,dat structures,True,,,Searched for: Data Structures
+data structures,first word: vowel slip,dato structures,True,data structures,,Showing results for “data structures”.
+data structures,first word: two wrong letters,das structures,True,,,Did you mean “Data Structures”? Showing results for it.
+data structures,first word: heavy,datat structures,True,data structures,,Showing results for “data structures”.
+data structures,last word: start of word,data tsructures,True,data structures,,Showing results for “data structures”.
+data structures,last word: middle of word,data strucutres,True,data structures,,Showing results for “data structures”.
+data structures,last word: end of word,data structurea,True,data structures,,Showing results for “data structures”.
+data structures,last word: vowel slip,data stractures,True,data structures,,Showing results for “data structures”.
+data structures,last word: two wrong letters,data strucutre,True,data structures,,Showing results for “data structures”.
+data structures,last word: heavy,data tsructturse,True,,,No exact match for “data tsructturse”. These are the closest guesses.
+data structures,all words: small,daa structtures,True,daa structures,,Showing results for “daa structures”.
+data structures,all words: vowel slips,dita structuras,True,data structures,,Showing results for “data structures”.
+data structures,all words: heavy,dat structurea,True,dat structure | dat structures | dat structured,,Showing results for “dat structure”.
+data structures,first half only,data st,True,data structures,,Showing results for “data structures”.
+linear algebra,first word: start of word,kinear algebra,True,kinnear algebra,,Showing results for “kinnear algebra”.
+linear algebra,first word: middle of word,linar algebra,True,linear algebra,,Showing results for “linear algebra”.
+linear algebra,first word: end of word,linea algebra,True,linear algebra,,Showing results for “linear algebra”.
+linear algebra,first word: vowel slip,lonear algebra,True,linear algebra,,Showing results for “linear algebra”.
+linear algebra,first word: two wrong letters,lineare algebra,True,linear algebra,,Showing results for “linear algebra”.
+linear algebra,first word: heavy,kibea algebra,True,,,“kibea algebra” isn't in our library yet. These are the closest matches.
+linear algebra,last word: start of word,linear lagebra,True,linear algebra,,Showing results for “linear algebra”.
+linear algebra,last word: middle of word,linear algeebra,True,linear algebra,,Showing results for “linear algebra”.
+linear algebra,last word: end of word,linear algebraa,True,linear algebra | linear algebras,,Showing results for “linear algebra”.
+linear algebra,last word: vowel slip,linear ulgebra,True,linear algebra,,Showing results for “linear algebra”.
+linear algebra,last word: two wrong letters,linear algeebrs,True,linear algebra | linear algebras,,Showing results for “linear algebra”.
+linear algebra,last word: heavy,linear slgbear,False,line silber,,Showing results for author: Lee Silber
+linear algebra,all words: small,linwar algbera,True,linear algebra,,Showing results for “linear algebra”.
+linear algebra,all words: vowel slips,lonear algebru,True,linear algebra,,Showing results for “linear algebra”.
+linear algebra,all words: heavy,iner akgebra,True,,,No exact match for “iner akgebra”. These are the closest guesses.
+linear algebra,first half only,linear a,True,linear algebra,,Showing results for “linear algebra”.
+organic chemistry,first word: start of word,oorganic chemistry,True,organic chemistry,,Showing results for “organic chemistry”.
+organic chemistry,first word: middle of word,orgqnic chemistry,True,organic chemistry,,Showing results for “organic chemistry”.
+organic chemistry,first word: end of word,organi chemistry,True,,,Searched for: Organic chemistry
+organic chemistry,first word: vowel slip,organuc chemistry,True,organic chemistry,,Showing results for “organic chemistry”.
+organic chemistry,first word: two wrong letters,orgaincc chemistry,True,organic chemistry,,Showing results for “organic chemistry”.
+organic chemistry,first word: heavy,orgicc chemistry,True,oric chemistry,,Showing results for “oric chemistry”.
+organic chemistry,last word: start of word,organic cchemistry,True,organic chemistry | organic chemists,,Showing results for “organic chemistry”.
+organic chemistry,last word: middle of word,organic chemstry,True,organic chemistry,,Showing results for “organic chemistry”.
+organic chemistry,last word: end of word,organic chemistryy,True,organic chemistry | organic chemists,,Showing results for “organic chemistry”.
+organic chemistry,last word: vowel slip,organic chemastry,True,organic chemistry | organic chemists,,Showing results for “organic chemistry”.
+organic chemistry,last word: two wrong letters,organic chemsitr,True,organic chemistry | organic chemists,,Showing results for “organic chemistry”.
+organic chemistry,last word: heavy,organic cchemuustry,True,organic chemistry,,Showing results for “organic chemistry”.
+organic chemistry,all words: small,orgaanic chemsitry,True,organic chemistry | organic chemists,,Showing results for “organic chemistry”.
+organic chemistry,all words: vowel slips,irganic chemistro,True,organic chemistry,,Showing results for “organic chemistry”.
+organic chemistry,all words: heavy,gqnic cchemtsry,True,gqnic chemistry,,Showing results for “gqnic chemistry”.
+organic chemistry,first half only,organic c,True,organic chemistry,,Showing results for “organic chemistry”.
+game of thrones,first word: start of word,agme of thrones,True,game of thrones,,Showing results for “game of thrones”.
+game of thrones,first word: middle of word,gane of thrones,True,game of thrones | gane,,Showing results for “game of thrones”.
+game of thrones,first word: end of word,gaem of thrones,True,game of thrones,,Showing results for “game of thrones”.
+game of thrones,first word: vowel slip,geme of thrones,True,game of thrones,,Showing results for “game of thrones”.
+game of thrones,first word: two wrong letters,garm of thrones,True,gram of thrones,,Showing results for “gram of thrones”.
+game of thrones,first word: heavy,ham of thrones,True,,,“ham of thrones” isn't in our library yet. These are the closest matches.
+game of thrones,last word: start of word,game of htrones,True,game of thrones,,Showing results for “game of thrones”.
+game of thrones,last word: middle of word,game of throones,True,game of thrones,,Showing results for “game of thrones”.
+game of thrones,last word: end of word,game of thronse,True,game of thrones,,Showing results for “game of thrones”.
+game of thrones,last word: vowel slip,game of thrunes,True,game of thrones,,Showing results for “game of thrones”.
+game of thrones,last word: two wrong letters,game of htrnes,False,game of horne,game of horne,Showing results for “game of horne”. “game of horne” isn't in our library yet. T
+game of thrones,last word: heavy,game of throonr,True,game of throne,,Showing results for “game of throne”.
+game of thrones,all words: small,gane of thrnes,True,game of thrones | game of three | gane,,Showing results for “game of thrones”.
+game of thrones,all words: vowel slips,gamo of thronos,True,game of thrones,,Showing results for “game of thrones”.
+game of thrones,all words: heavy,amme of htrpnse,False,,,“amme of htrpnse” isn't in our library yet. These are the closest matches.
+game of thrones,first half only,game of t,True,game of thrones,,Showing results for “game of thrones”.
+the hunger games,first word: start of word,the uhnger games,True,the hunger games | the under games,,Showing results for “the hunger games”.
+the hunger games,first word: middle of word,the hungger games,True,the hunger games,,Showing results for “the hunger games”.
+the hunger games,first word: end of word,the hungre games,True,the hunger games,,Showing results for “the hunger games”.
+the hunger games,first word: vowel slip,the hanger games,True,the hunger games,,Showing results for “the hunger games”.
+the hunger games,first word: two wrong letters,the hunhee games,True,the hunger games | the hunde games | the hunte games,,Showing results for “the hunger games”.
+the hunger games,first word: heavy,the hunfferr games,True,the hunger games,,Showing results for “the hunger games”.
+the hunger games,last word: start of word,the hunger ggames,True,the hunger games | the hunger game,,Showing results for “the hunger games”.
+the hunger games,last word: middle of word,the hunger gaems,True,the hunger games,,Showing results for “the hunger games”.
+the hunger games,last word: end of word,the hunger game,True,the hunger games,,Showing results for “the hunger games”.
+the hunger games,last word: vowel slip,the hunger gumes,True,the hunger games,,Showing results for “the hunger games”.
+the hunger games,last word: two wrong letters,the hunger game,True,the hunger games,,Showing results for “the hunger games”.
+the hunger games,last word: heavy,the hunger faes,True,the hunger games | the hunger fates | the hunger faces,,Showing results for “the hunger games”.
+the hunger games,all words: small,the hunegr gaems,True,the hunger games,,Showing results for “the hunger games”.
+the hunger games,all words: vowel slips,the hungir gimes,True,the hunger games,,Showing results for “the hunger games”.
+the hunger games,all words: heavy,the hunegr ganed,True,the hunger games | the hunger gained | the hunger gane | the hunger gand | the hunter gained,,Showing results for “the hunger games”.
+the hunger games,first half only,the hung,True,the huang | the hunt,,
+percy jackson,first word: start of word,oercy jackson,True,percy jackson,,Showing results for “percy jackson”.
+percy jackson,first word: middle of word,pecry jackson,True,petry jackson | perry jackson | percy jackson | peary jackson,,Showing results for “petry jackson”. Also showing books by Petra Jackson below.
+percy jackson,first word: end of word,percyy jackson,True,percy jackson,,Showing results for “percy jackson”.
+percy jackson,first word: vowel slip,pircy jackson,True,percy jackson,,Showing results for “percy jackson”.
+percy jackson,first word: two wrong letters,ppercyy jackson,True,percy jackson,,Showing results for “percy jackson”.
+percy jackson,first word: heavy,pect jackson,False,pet jackson | pest jackson | peck jackson,,Showing results for author: Neta Jackson
+percy jackson,last word: start of word,percy jjackson,True,percy jackson,,Showing results for “percy jackson”.
+percy jackson,last word: middle of word,percy jacson,True,percy jackson | jacson,,Showing results for “percy jackson”.
+percy jackson,last word: end of word,percy jacksno,True,percy jackson,,Showing results for “percy jackson”.
+percy jackson,last word: vowel slip,percy jeckson,True,percy jackson,,Showing results for “percy jackson”.
+percy jackson,last word: two wrong letters,percy ajcskon,False,,,“percy ajcskon” isn't in our library yet. These are the closest matches.
+percy jackson,last word: heavy,percy acsson,False,,,“percy acsson” isn't in our library yet. These are the closest matches.
+percy jackson,all words: small,perrcy jackkson,True,perry jackson | percy jackson,,Showing results for “perry jackson”. Also showing books by Jerry R. Jackson belo
+percy jackson,all words: vowel slips,porcy juckson,True,percy jackson,,Showing results for “percy jackson”.
+percy jackson,all words: heavy,peect sckson,False,,,“peect sckson” isn't in our library yet. These are the closest matches.
+percy jackson,first half only,percy j,True,percy jackson,,Showing results for “percy jackson”.
+ernest hemingway,first word: start of word,eernest hemingway,True,ernest hemingway,,Showing results for author: Ernest Hemingway
+ernest hemingway,first word: middle of word,ernst hemingway,True,ernest hemingway,,Showing results for author: Ernest Hemingway
+ernest hemingway,first word: end of word,ernesy hemingway,True,ernest hemingway,,Showing results for author: Ernest Hemingway
+ernest hemingway,first word: vowel slip,ernist hemingway,True,ernest hemingway,,Showing results for author: Ernest Hemingway
+ernest hemingway,first word: two wrong letters,ernsr hemingway,True,ernest hemingway | ernst hemingway,,Showing results for author: Ernest Hemingway
+ernest hemingway,first word: heavy,ernset hemingway,True,ernest hemingway,,Showing results for author: Ernest Hemingway
+ernest hemingway,last word: start of word,ernest hhemingway,True,ernest hemingway | ernest heminway,,Showing results for author: Ernest Hemingway
+ernest hemingway,last word: middle of word,ernest hemigway,True,ernest hemingway | ernest heminway,,Showing results for author: Ernest Hemingway
+ernest hemingway,last word: end of word,ernest hemingwayy,True,ernest hemingway | ernest heminway,,Showing results for author: Ernest Hemingway
+ernest hemingway,last word: vowel slip,ernest hemingwai,True,ernest hemingway | ernest heminway,,Showing results for author: Ernest Hemingway
+ernest hemingway,last word: two wrong letters,ernest hemimgwa,True,ernest hemingway | ernest heminway,,Showing results for author: Ernest Hemingway
+ernest hemingway,last word: heavy,ernest hemiggway,True,ernest hemingway | ernest heminway,,Showing results for author: Ernest Hemingway
+ernest hemingway,all words: small,ernset hemignway,True,ernest hemingway | ernest heminway,,Showing results for author: Ernest Hemingway
+ernest hemingway,all words: vowel slips,arnest hemingwae,True,ernest hemingway | earnest heminway,,Showing results for author: Ernest Hemingway
+ernest hemingway,all words: heavy,rensy hemingwayy,True,ernest hemingway,,Showing results for author: Ernest Hemingway
+ernest hemingway,first half only,ernest h,True,ernest hemingway,,Showing results for author: Ernest Hemingway
+leo tolstoy,first word: start of word,leo otlstoy,True,leo tolstoy,,Showing results for author: Leo Tolstoy
+leo tolstoy,first word: middle of word,leo toltoy,True,leo tolstoy | leo tolstoi,,Showing results for author: Leo Tolstoy
+leo tolstoy,first word: end of word,leo tolstot,True,leo tolstoy | leo tolstoi,,Showing results for author: Leo Tolstoy
+leo tolstoy,first word: vowel slip,leo tilstoy,True,leo tolstoy | leo tolstoi,,Showing results for author: Leo Tolstoy
+leo tolstoy,first word: heavy,leo otlssstoy,True,,,“leo otlssstoy” isn't in our library yet. These are the closest matches.
+leo tolstoy,last word: start of word,leo olstoy,True,leo tolstoy,,Showing results for author: Leo Tolstoy
+leo tolstoy,last word: middle of word,leo toltsoy,True,leo tolstoy | leo tolstoi,,Showing results for author: Leo Tolstoy
+leo tolstoy,last word: end of word,leo tolstot,True,leo tolstoy | leo tolstoi,,Showing results for author: Leo Tolstoy
+leo tolstoy,last word: vowel slip,leo tolstoo,True,leo tolstoy | leo tolstoi,,Showing results for author: Leo Tolstoy
+leo tolstoy,last word: two wrong letters,leo ttoltsoy,True,leo tolstoy,,Showing results for author: Leo Tolstoy
+leo tolstoy,last word: heavy,leo tolsttoyyy,True,leo tolstoy,,Showing results for author: Leo Tolstoy
+leo tolstoy,first half only,leo t,True,leo tolstoy,,Showing results for author: Leo Tolstoy
+artificial intelligence,first word: start of word,rtificial intelligence,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,first word: middle of word,artifciial intelligence,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,first word: end of word,artificiall intelligence,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,first word: vowel slip,artificoal intelligence,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,first word: two wrong letters,aartifficial intelligence,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,first word: heavy,rtifciiak intelligence,True,,,Searched for: Artificial Intelligence
+artificial intelligence,last word: start of word,artificial ontelligence,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,last word: middle of word,artificial intellugence,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,last word: end of word,artificial intelligenec,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,last word: vowel slip,artificial intelligonce,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,last word: two wrong letters,artificial intellience,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,last word: heavy,artificial nitelliigence,True,,,Searched for: Artificial Intelligence
+artificial intelligence,all words: small,artifiicial intellgience,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,all words: vowel slips,artificaal entelligence,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,all words: heavy,artiiial iuntelligence,True,artificial intelligence,,Showing results for “artificial intelligence”.
+artificial intelligence,first half only,artificial i,True,artificial intelligence,,Showing results for “artificial intelligence”.
+operating systems,first word: start of word,ooperating systems,True,operating systems | operations systems,,Showing results for “operating systems”.
+operating systems,first word: middle of word,operting systems,True,operating systems | operations systems,,Showing results for “operating systems”.
+operating systems,first word: end of word,operatin systems,True,operating systems | operations systems,,Showing results for “operating systems”.
+operating systems,first word: vowel slip,eperating systems,True,operating systems,,Showing results for “operating systems”.
+operating systems,first word: two wrong letters,poeratingg systems,True,operating systems,,Showing results for “operating systems”.
+operating systems,first word: heavy,lperatingg systems,True,operating systems,,Showing results for “operating systems”.
+operating systems,last word: start of word,operating ysstems,True,operating systems,,Showing results for “operating systems”.
+operating systems,last word: middle of word,operating systtems,True,operating systems | operating system,,Showing results for “operating systems”.
+operating systems,last word: end of word,operating systemd,True,operating system | operating systems,,Showing results for “operating system”.
+operating systems,last word: vowel slip,operating sustems,True,operating systems | operating system,,Showing results for “operating systems”.
+operating systems,last word: two wrong letters,operating systtema,True,operating system | operating systems,,Showing results for “operating system”.
+operating systems,last word: heavy,operating ssysttemd,True,operating system | operating systems,,Showing results for “operating system”.
+operating systems,all words: small,opertaing systtems,True,operating systems | operating system,,Showing results for “operating systems”.
+operating systems,all words: vowel slips,opereting sistems,True,operating systems,,Showing results for “operating systems”.
+operating systems,all words: heavy,operitnh syseeems,True,operating systems | operating system,,Showing results for “operating systems”.
+operating systems,first half only,operatin,True,operating | operations,,Showing results for “operating”.
+dan brown,first word: start of word,dan bbrown,True,dan brown,,Showing results for author: Dan Brown
+dan brown,first word: middle of word,dan brwn,True,dan brown,,Showing results for author: Dan Brown
+dan brown,first word: end of word,dan browm,True,dan brown,,Showing results for author: Dan Brown
+dan brown,first word: vowel slip,dan brywn,True,dan brown,,Showing results for author: Dan Brown
+dan brown,first word: two wrong letters,dan broowb,True,dan brown,,Showing results for author: Dan Brown
+dan brown,first word: heavy,dan nrowb,True,dan brown,,Showing results for author: Dan Brown
+dan brown,last word: start of word,dan bbrown,True,dan brown,,Showing results for author: Dan Brown
+dan brown,last word: middle of word,dan brwon,True,dan brown,,Showing results for author: Dan Brown
+dan brown,last word: end of word,dan brownn,True,dan brown,,Showing results for author: Dan Brown
+dan brown,last word: vowel slip,dan brawn,True,dan brown | dan braun,,Showing results for author: Dan Brown
+dan brown,last word: two wrong letters,dan rowb,True,dan brown | dan rob | dan robb,,Showing results for author: Dan Brown
+dan brown,last word: heavy,dan browv,True,dan brown,,Showing results for author: Dan Brown
+dan brown,first half only,dan b,True,dan brown,,Showing results for author: Dan Brown
+roald dahl,first word: start of word,rroald dahl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,first word: middle of word,roqld dahl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,first word: end of word,roaldd dahl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,first word: vowel slip,raald dahl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,first word: two wrong letters,rroal dahl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,first word: heavy,rroadl dahl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,last word: start of word,roald sahl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,last word: middle of word,roald dal,True,,,Showing results for author: Roald Dahl
+roald dahl,last word: end of word,roald dahk,True,roald dahl | road dark,,Showing results for author: Roald Dahl
+roald dahl,last word: vowel slip,roald dihl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,last word: two wrong letters,roald alh,True,,,“roald alh” isn't in our library yet. These are the closest matches.
+roald dahl,last word: heavy,roald dahh,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,all words: small,roaald dahhl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,all words: vowel slips,raald dyhl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,all words: heavy,roadld adgl,True,roald dahl,,Showing results for author: Roald Dahl
+roald dahl,first half only,roald d,True,roald dahl,,Showing results for author: Roald Dahl

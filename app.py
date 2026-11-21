@@ -47,6 +47,7 @@ system = load_search_system(fetch_data.DATA_DIR)
 import search as _search
 for _kind in ('title', 'author'):                # 'sounds like' lists for very misspelled searches, built now
     _search._sound_index(system, _kind)          # so the first such search is not slow
+threading.Thread(target=_search.warm_up_indexes, args=(system,), daemon=True).start()   # phrase list, same-sound words
 community.init()
 # prepare the books for every learning-path step in the background, so routes appear instantly
 threading.Thread(target=paths.warm_up, args=(system,), daemon=True).start()

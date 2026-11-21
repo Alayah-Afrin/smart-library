@@ -773,7 +773,48 @@ def sounds_like(word):
     for a, b in SOUND_RULES:
         w = w.replace(a, b)
     w = re.sub(r'(.)\1+', r'\1', w)                  # double letters sound like one
+    w = w.translate(VOICED_TO_UNVOICED)              # d/t, b/p, g/k, v/f are said almost alike: poder = potter
+    w = re.sub(r'(.)\1+', r'\1', w)
     return w[:-1] if len(w) > 3 and w.endswith('e') else w   # silent final e
+
+
+VOICED_TO_UNVOICED = str.maketrans('bdgv', 'ptkf')
+# pairs that are mixed up as the FIRST letter ("dolkien" = Tolkien, "brejudice" = prejudice, "kadsby" = Gatsby)
+FIRST_LETTER_TWINS = {'b': 'p', 'p': 'b', 'd': 't', 't': 'd', 'g': 'k', 'k': 'gc', 'c': 'k', 'v': 'f', 'f': 'v', 's': 'z', 'z': 's'}
+
+
+def warm_up_indexes(sys):
+    """Build the one-off helper indexes (about 25 seconds in all) in the background at start-up, so the first
+    visitor who makes a heavy typo does not wait for them."""
+    for build in (lambda: popular_phrase_index(sys), lambda: same_sound_words(sys, 'harry'),
+                  lambda: _sound_index(sys, 'author'), lambda: _sound_index(sys, 'title')):
+        try:
+            build()
+        except Exception as e:                      # never let warm-up break the app
+            print('index warm-up failed:', repr(e))
+
+
+def books_with_all_words(sys, q):
+    """How many books contain every meaningful word of `q` (0 = a reading no book has, such as 'agatha hartini')."""
+    ids = None
+    for t in q.split():
+        w = fold(t).strip('.,!?;:"()')
+        if w.isalpha() and len(w) >= 3 and w not in STOPWORDS:
+            d = docs_with(sys, w)
+            ids = d if ids is None else np.intersect1d(ids, d)
+    return 0 if ids is None else len(ids)
+
+
+def same_sound_words(sys, word):
+    """Catalog words that SOUND like `word` (hari = harry, twilite = twilight), however different they look.
+    The index is built once, on first use."""
+    index = sys.get('sound_index')
+    if index is None:
+        index = {}
+        for w in sys['fix_words']:
+            index.setdefault(sounds_like(w), []).append(w)
+        sys['sound_index'] = index
+    return index.get(sounds_like(word), [])
 
 
 def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
@@ -805,6 +846,8 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
     pop_of_reading = {}
     known_ids = []         # books for the correctly spelled, meaningful words
     typed_real = []        # misspelled-looking words that ARE in our books (surnames: "podder", "harr")
+    known_by_slot = {}     # slot index -> books for a correctly spelled word that could still be a slip
+    real_words = []        # (slot index, word, token, books) of those words
     any_typo = False
     for tok in tokens:
         b = fold(tok).strip('.,!?;:"()')
@@ -824,6 +867,7 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
         sound_twins = set()    # words reached by swapping a doubled consonant for its twin sound
         if maybe_typo:
             pool = [c for c, _, _ in process.extract(b, sys['fix_words'], scorer=fuzz.ratio, score_cutoff=70, limit=60)]
+            pool += same_sound_words(sys, b)          # "poder" does not LOOK like "potter", but sounds the same
             # a doubled consonant swapped for its twin sound: "podder" = potter, "hobbit" typed "hoppit"
             for old, new in (('dd', 'tt'), ('tt', 'dd'), ('bb', 'pp'), ('pp', 'bb'), ('gg', 'kk'), ('kk', 'gg')):
                 if old in b:
@@ -840,20 +884,33 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
                 continue
             neighbour = (slips and cand[0] != b[0] and b[0] in KEY_NEIGHBOURS.get(cand[0], '')
                          and DamerauLevenshtein.distance(b[1:], cand[1:]) <= _max_edits(b))
-            if cand[0] != b[0] and cand[1:] != b and not neighbour:
-                continue          # first letter kept, unless left out or a key next to it was hit ("orcy" = percy)
+            twin_start = (cand[0] in FIRST_LETTER_TWINS.get(b[0], '') and sounds_like(cand) == key)
+            swapped_start = cand == b[1:2] + b[:1] + b[2:]         # first two letters swapped: "uasten" = austen
+            vowel_start = cand[1:] == b[1:] and cand[0] in 'aeiou' and b[0] in 'aeiou'    # "eperating" = operating
+            if cand[0] != b[0] and cand[1:] != b and not neighbour and not twin_start and not swapped_start and not vowel_start:
+                continue          # first letter kept, unless left out, a key next to it was hit ("orcy" = percy), or a twin sound
             edits = DamerauLevenshtein.distance(b, cand)
-            if edits <= _max_edits(b) or neighbour:
+            # a word that SOUNDS the same may be 2 letters away even when it is short ("poder" = potter)
+            sound_ok = edits <= 2 and sounds_like(cand) == key and (cand[:2] == b[:2] or twin_start)
+            if edits <= _max_edits(b) or neighbour or sound_ok:
                 # cost in "wrong letters", plus a little for how different the words look overall, so
                 # equally popular choices go to the closer spelling; a word that SOUNDS the same counts
                 # as much closer ("twilite" sounds like twilight, not twisted)
                 cost = edits + 0.012 * (100 - fuzz.ratio(b, cand))
                 if edits >= 2 and sounds_like(cand) == key:      # only for big typos: 1-letter typos are
                     cost = max(0.5, cost - 1.5)                  # fine already ("christe" is Christie, not Christ)
+                if len(b) >= 5 and cand.startswith(b) and len(cand) - len(b) <= 3:
+                    cost = max(0.4, cost - 0.7)                  # half-typed word: "stephe" is stephen, not steve
+                if edits > _max_edits(b) and not neighbour:
+                    cost = max(cost, 1.2)                        # let in only for its sound: just below an equal 1-letter fix
                 if neighbour:                                    # one slipped key + the rest of the word
                     cost = DamerauLevenshtein.distance(b[1:], cand[1:]) + 0.5
                     slipped.add(cand)
                 cands.append((cand, cost, edits))
+        # a slipped first key is believed only when it is CLEARLY closer than any word that keeps the first letter:
+        # "fatsby" = gatsby (1 letter, against 2 for "fats"), but "kunth" is knuth (1), not "month"
+        best_plain = min((c[2] for c in cands if c[0] not in slipped), default=99)
+        cands = [c for c in cands if c[0] not in slipped or c[2] < best_plain]
         # never seen in our books; a real English word is only fixed when a catalog word is 1 letter away
         # (a word in even ONE of our books is real: Sipser, Mankiw, Jurafsky have 1-2 books)
         unknown = not len(own_ids) and (not spell.known([b]) or any(c[2] == 1 for c in cands))
@@ -862,7 +919,8 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
         own_pop = pop_of(own_ids)
         much_better = [c for c in cands if pop_of(docs_with(sys, c[0])) >= 10 * max(own_pop, 1)
                        and pop_of(docs_with(sys, c[0])) >= 200
-                       and (c[2] == 1 or not len(own_ids) or c[0] in sound_twins)]   # a word our books have: only 1 letter off ("hermione" stays), or the same sound ("podder" = potter)
+                       and (c[2] == 1 or not len(own_ids) or c[0] in sound_twins
+                            or (c[2] == 2 and sounds_like(c[0]) == key))]   # a word our books have: only 1 letter off ("hermione" stays), or the same sound ("podder", "poder" = potter)
         sfame = sys['surname_fame']
         if b in sfame and len(tokens) == 1:
             # (only for a one-word query: in "harr podder" the OTHER words decide, so "harry" stays a candidate)
@@ -879,12 +937,53 @@ def spelling_alternatives(sys, query, keep=3, margin=15, slips=False):
                 ranked.append((b, 1))              # as typed: a real but much less-read meaning ("harr", "podder")
                 typed_real.append(b)
             slots.append(ranked)
+            if len(own_ids):
+                real_words.append((len(slots) - 1, b, tok, own_ids))
         else:
             slots.append([(tok, 0)])
             if len(own_ids) and b not in STOPWORDS:
-                known_ids.append(own_ids)
-    if not any_typo:
+                known_by_slot[len(slots) - 1] = own_ids
+                real_words.append((len(slots) - 1, b, tok, own_ids))
+
+    # a REAL word of a longer query can still be a slip for a far more read one that sounds the same:
+    # "hari poter" / "hari potter" -> "harry potter" ("hari" is Mata Hari, Hari Kunzru, but 2 letters from harry).
+    # The swapped word is judged together with the others below, so only a reading that makes books wins.
+    extended = set()
+    if len(tokens) >= 2:
+        for idx, b, tok, own_ids in real_words:
+            own_pop = pop_of(own_ids)
+            extra = []
+            # "hari" -> "harry" looks only 67% alike (many other words look closer) but SOUNDS the same: so words that
+            # sound the same are candidates too
+            pool_words = [c for c, _, _ in process.extract(b, sys['fix_words'], scorer=fuzz.ratio, score_cutoff=70, limit=40)]
+            for cand in dict.fromkeys(pool_words + same_sound_words(sys, b)):
+                if cand == b or cand in STOPWORDS:
+                    continue
+                # the first letter: kept, left out ("ing" = king), a key next to it ("garry" = harry), a twin sound
+                # ("dolkien"), or the first two letters swapped ("uasten" = austen)
+                first_ok = (cand[0] == b[0] or cand[1:] == b or b[0] in KEY_NEIGHBOURS.get(cand[0], '')
+                            or cand[0] in FIRST_LETTER_TWINS.get(b[0], '') or cand == b[1:2] + b[:1] + b[2:]
+                            or (cand[1:] == b[1:] and cand[0] in 'aeiou' and b[0] in 'aeiou'))
+                if not first_ok:
+                    continue
+                edits = DamerauLevenshtein.distance(b, cand)
+                same_sound = sounds_like(cand) == sounds_like(b)
+                if edits > (2 if same_sound else _max_edits(b)) or (edits >= 2 and cand[:2] != b[:2] and not same_sound):
+                    continue
+                cand_pop = pop_of(docs_with(sys, cand))
+                if cand_pop >= 3 * max(own_pop, 1) and cand_pop >= 200:
+                    cost = edits + 0.012 * (100 - fuzz.ratio(b, cand))
+                    if edits >= 2 and same_sound:
+                        cost = max(0.5, cost - 1.5)
+                    extra.append((cand, cost, cand_pop))
+            if extra:
+                extra.sort(key=lambda c: -25 * c[1] + 10 * math.log10(1 + c[2]), reverse=True)
+                have = {w for w, _ in slots[idx]}
+                slots[idx] = slots[idx] + [(c, cost) for c, cost, _ in extra[:3] if c not in have]
+                extended.add(idx)
+    if not any_typo and not extended:
         return []
+    known_ids += [ids for i, ids in known_by_slot.items() if i not in extended]   # a word that may be a slip must not narrow the books
 
     base = None
     for ids in known_ids:
@@ -1056,6 +1155,125 @@ def popular_neighbours(sys, query, keep=2):
         if len(out) == keep:
             break
     return out
+
+
+PHRASE_SKIP = {'the', 'a', 'an', 'of', 'and', 'to', 'in', 'on', 'for', 'with', 'by', 'at', 'from'}
+
+
+def popular_phrase_index(sys):
+    """Two- and three-word phrases from titles and author names, with how much the books that hold them are read
+    ("harry potter" is read far more than "harry power"). Built once (under a second), then kept."""
+    idx = sys.get('phrase_index')
+    if idx is not None:
+        return idx
+    wd = sys['work_dedup']
+    rc = pd.to_numeric(wd['rating_count'], errors='coerce').fillna(0).to_numpy()
+    titles = wd['title'].fillna('').to_numpy()
+    pops = {}
+    for i in np.flatnonzero(rc >= 3):
+        words = proc(re.split(r'[:(\[]', titles[i])[0]).split()[:7]
+        seen = set()
+        for n in (2, 3, 4):
+            for j in range(len(words) - n + 1):
+                g = words[j:j + n]
+                if g[-1] in PHRASE_SKIP or (n == 2 and g[0] in PHRASE_SKIP):
+                    continue                              # not "of the" or "game of"; "to kill a mockingbird" is fine
+                p = ' '.join(g)
+                if p not in seen:
+                    seen.add(p)
+                    pops[p] = pops.get(p, 0.0) + float(rc[i])
+    for a, fame in sys['author_fame'].items():                  # "stephen king" counts as a phrase too
+        if fame >= 20:
+            name = proc(sys['author_display'].get(a, a))
+            if 2 <= len(name.split()) <= 3:
+                pops[name] = pops.get(name, 0.0) + float(fame)
+    pops = {p: v for p, v in pops.items() if v >= 20}
+    idx = {'pop': pops}
+    for n in (2, 3, 4):
+        names = [p for p in pops if len(p.split()) == n]
+        idx[n] = (names, [pops[p] for p in names])
+    sys['phrase_index'] = idx
+    return idx
+
+
+def phrase_suggestions(sys, query, keep=2):
+    """"harry power" is two real words, yet one step from "harry potter", read far more: like a search engine,
+    offer it as "Did you mean". Only for 2-3 word queries that are not themselves a well-read phrase."""
+    words = proc(query or '').split()
+    if len(words) > 4:
+        return []
+    if len(words) not in (2, 3, 4):
+        return []
+    idx = popular_phrase_index(sys)
+    typed = ' '.join(words)
+    typed_pop = idx['pop'].get(typed, 0.0)
+    if typed_pop >= 60:                                      # what was typed is already a well-read phrase
+        return []
+    names, pops = idx[len(words)]
+    found = []
+    # a word our books have never seen makes a looser match fair ("hunegr ganed" -> hunger games)
+    unknown = any(w.isalpha() and len(w) >= 3 and w not in PHRASE_SKIP and w not in sys['vocab'] for w in words)
+    for ph, score, i in process.extract(typed, names, scorer=fuzz.ratio, score_cutoff=72 if unknown else 80, limit=20):
+        if ph == typed or pops[i] < 150 or pops[i] < 10 * max(typed_pop, 5):
+            continue
+        if any(DamerauLevenshtein.distance(a, b) > 3 for a, b in zip(typed.split(), ph.split())):
+            continue                                         # no word changed by more than 3 letters
+        found.append((score + 8 * math.log10(pops[i]), ph))
+    found.sort(reverse=True)
+    return [ph for _, ph in found[:keep]]
+
+
+def phrase_completion(sys, query):
+    """A half-typed phrase, like a search box that finishes your words: "harry p" -> harry potter, "george o" ->
+    george orwell, "game of t" -> game of thrones, "machine l" -> machine learning. The most-read phrase that
+    starts with the typed words wins. Only when the last word is 1-4 letters and the typed text is no phrase itself."""
+    words = re.findall(r"[a-z0-9]+", fold(query or ''))      # not proc(): it would merge "a m" into "am"
+    if len(words) not in (2, 3, 4) or not words[-1].isalpha() or not 1 <= len(words[-1]) <= 4:
+        return None
+    idx = popular_phrase_index(sys)
+    typed = ' '.join(words)
+    if idx['pop'].get(typed, 0.0) >= 60:
+        return None
+    head, last = ' '.join(words[:-1]) + ' ', words[-1]
+    best = None
+    for n in range(len(words), 5):                           # the phrase may be longer: "lord of t" -> lord of the rings
+        names, pops = idx[n]
+        for ph, p in zip(names, pops):
+            if p >= 20 and ph.startswith(head) and ph[len(head):].startswith(last) and len(ph) > len(typed):
+                if best is None or p > best[1]:
+                    best = (ph, p)
+    return best[0] if best else title_completion(sys, words)
+
+
+def title_completion(sys, words):
+    """No well-read phrase starts with the typed words (textbooks have few ratings): read the next word straight
+    from the titles that contain the earlier words ("machine l" -> machine learning)."""
+    head, last = words[:-1], words[-1]
+    ids = None
+    for w in head:
+        if w in PHRASE_SKIP or len(w) < 3:
+            continue
+        d = docs_with(sys, w)
+        ids = d if ids is None else np.intersect1d(ids, d)
+    if ids is None or not len(ids):
+        return None
+    wd = sys['work_dedup']
+    titles = wd['title'].to_numpy()
+    rc = pd.to_numeric(wd['rating_count'], errors='coerce').fillna(0).to_numpy()
+    prefix = ' '.join(head) + ' '
+    counts = {}
+    for i in ids[:6000]:
+        t = proc(re.split(r'[:(\[]', str(titles[i]))[0])
+        k = t.find(prefix)
+        while k != -1:
+            rest = t[k + len(prefix):].split()
+            if rest and rest[0].startswith(last) and rest[0] != last and rest[0] not in PHRASE_SKIP:
+                counts[rest[0]] = counts.get(rest[0], 0.0) + 1 + float(rc[i])
+            k = t.find(prefix, k + 1)
+    if not counts:
+        return None
+    best = max(counts, key=counts.get)
+    return prefix + best if counts[best] >= 3 else None
 
 
 def _phrase_sound(s):
@@ -1794,7 +2012,13 @@ SHORT_FORMS = {
     'toc': 'theory of computation', 'coa': 'computer organization and architecture',
     'dld': 'digital logic design', 'se': 'software engineering', 'eee': 'electrical and electronic engineering',
     'cse': 'computer science and engineering', 'lotr': 'lord of the rings', 'hhgttg': "hitchhiker's guide to the galaxy",
+    'db': 'database',
 }
+
+# Short forms that also mean something else ("hp" is H.P. Lovecraft, "got" is a plain word): what was typed is
+# searched as typed, and the famous meaning is offered as a "Did you mean" link.
+AMBIGUOUS_SHORT = {'hp': ['harry potter'], 'got': ['game of thrones'], 'asoiaf': ['a song of ice and fire'],
+                   'twd': ['the walking dead'], 'lotf': ['lord of the flies'], 'tkam': ['to kill a mockingbird']}
 
 
 # Real name -> the pen name the books are filed under (and a few pen names -> the famous real name).
@@ -2019,9 +2243,49 @@ def exact_title_first(df, query):
     return out
 
 
+LOOKALIKES = {'@': 'a', '4': 'a', '0': 'o', '3': 'e', '$': 's', '5': 's', '7': 't', '1': ['i', 'l']}
+INITIALS = re.compile(r'(?:[^\W\d_]\.)+')
+
+
+def tidy_query(query, sys):
+    """Symbols are noise, as they are for a search engine: "harry potter!!", "harry.potter", "harry,potter",
+    "$potter", "#harrypotter", '"harry potter"' and "harry potter&the chamber" all mean the plain words.
+    A letter swapped for a look-alike symbol or digit ("h@rry", "pott3r", "k1ng") is read as the letter, but only
+    when that gives a word our books have, so "catch 22", "1984" and "fahrenheit 451" stay as they are."""
+    q = query or ''
+    if len(re.sub(r'\D', '', q)) >= 8:                       # an ISBN: leave it alone
+        return q
+    if re.search(r'\w&\w|\w&\s|\s&\w', q):
+        q = re.sub(r'\s*&\s*', ' & ', q)                    # "potter&the" -> "potter & the"
+    q = re.sub(r'(?<=[^\W\d_]{3})[.,;:](?=[^\W\d_]{3})', ' ', q)     # "harry.potter" (not "j.k." / "node.js")
+    out = []
+    for tok in q.split():
+        if INITIALS.fullmatch(tok):                          # "j.k." "r.l.": initials keep their dots
+            out.append(tok)
+            continue
+        t = tok.strip('!?.,;:"“”()[]{}*~^<>|\\')
+        t = re.sub(r'^[@$#]+(?=\w)', '', t)                  # "$potter", "#harrypotter"
+        if re.search(r'[@$]', t) or (re.search(r'\d', t) and re.search(r'[^\W\d_]', t)):
+            low = fold(t)
+            if not (low in sys['vocab'] or len(docs_with(sys, low))):
+                spellings = ['']
+                for c in low:
+                    subs = LOOKALIKES.get(c, c)
+                    subs = subs if isinstance(subs, list) else [subs]
+                    spellings = [s + x for s in spellings for x in subs][:8]
+                for cand in spellings:
+                    if len(cand) >= 4 and cand.isalpha() and (cand in sys['vocab'] or len(docs_with(sys, cand))):
+                        t = cand
+                        break
+        if t:
+            out.append(t)
+    return ' '.join(out) or q
+
+
 def search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, free_only=False, online=True):
     """Public entry point. Surnames with an apostrophe ("o'connell") are tried as typed first; when the top
     authors don't have that surname, the joined spelling the catalog uses ("oconnell") is tried instead."""
+    query = tidy_query(query, sys)
     out = _search_with_characters(query, sys, mood_filter, category_filter, top_k, free_only, online)
     joined = join_apostrophe_names(query, sys)
     if joined == query:
@@ -2112,8 +2376,16 @@ def _search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, 
 
     # Misspelled words can mean several things ("poter" = potter OR peter): search the likeliest
     # meaning, then add the other meanings as their own sections and as "Did you mean" links.
-    alternatives = [] if expanded else spelling_alternatives(sys, q)
+    # slips=True: a key next to the right one ("fatsby" = gatsby) is always a possible first letter
+    alternatives = [] if expanded else spelling_alternatives(sys, q, slips=True)
+    if not alternatives and not expanded:
+        done = phrase_completion(sys, q)                 # half typed: "harry p" -> harry potter
+        if done:
+            alternatives = [done]
     if alternatives:
+        # the best guess may itself be one step from a far better-read phrase ("harry poer" -> "harry power" -> harry potter)
+        better = [p for p in phrase_suggestions(sys, alternatives[0]) if p not in alternatives]
+        alternatives = better[:2] + alternatives
         kw = dict(mood_filter=mood_filter, category_filter=category_filter, free_only=free_only)
         df, banner = _search_core(alternatives[0], sys, top_k=top_k, online=online, **kw)
         if "isn't in our library" in (banner or '') or (banner or '').startswith('No books match'):
@@ -2133,12 +2405,19 @@ def _search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, 
                     alternatives = [alt] + alternatives[:i] + alternatives[i + 1:]
                     df, banner = d2, b2
                     break
+        if (("isn't in our library" in (banner or '') or (banner or '').startswith('No books match'))
+                and not books_with_all_words(sys, alternatives[0])):
+            alternatives = []        # a made-up reading that no book has ("agatha hartini"): the page then explains the typed words
         if banner and banner.startswith('No books match'):
             banner = None
         shown = set(df['dedup_key']) if 'dedup_key' in df.columns else set()
         extra = []
+        live = alternatives[:1]
         for alt in alternatives[1:]:
-            d2, _ = _search_core(alt, sys, top_k=8, online=False, **kw)
+            d2, b2 = _search_core(alt, sys, top_k=8, online=False, **kw)
+            if not len(d2) or "isn't in our library" in (b2 or '') or (b2 or '').startswith('No books match'):
+                continue                                    # a link must never lead to an empty page
+            live.append(alt)
             if 'dedup_key' in d2.columns:
                 d2 = d2[~d2['dedup_key'].isin(shown)]
             d2 = d2.head(6).copy()
@@ -2146,6 +2425,7 @@ def _search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, 
                 d2['section'] = f"Did you mean “{alt}”?"
                 shown |= set(d2['dedup_key']) if 'dedup_key' in d2.columns else set()
                 extra.append(d2)
+        alternatives = live
         if extra:
             df = pd.concat([df] + extra, ignore_index=True)
         if len(df) == 0:
@@ -2195,6 +2475,8 @@ def _search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, 
     #  - a real word that is a likely slip for a far more read one ("hobbs" -> hobbit, hobby)
     #  - a very misspelled query that is close to a whole title or author name ("shrlck hlms")
     suggestions = [] if expanded else popular_neighbours(sys, q)
+    if not expanded:                                  # a whole phrase one step from a far better-read one ("harry power")
+        suggestions = list(dict.fromkeys(AMBIGUOUS_SHORT.get(short, []) + suggestions + phrase_suggestions(sys, q)))[:3]
     if misfit and len(misfit) < len(q.split()):
         suggestions = list(dict.fromkeys(misfit + suggestions))[:3]     # "percy" on its own is a meaning too
     weak = len(df) == 0 or (banner or '').startswith(('No books match', '“'))
@@ -2210,8 +2492,12 @@ def _search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, 
         kw = dict(mood_filter=mood_filter, category_filter=category_filter, free_only=free_only)
         shown = set(df['dedup_key']) if 'dedup_key' in df.columns else set()
         extra = []
+        live_links = []
         for alt in suggestions:
-            d2, _ = _search_core(alt, sys, top_k=8, online=False, **kw)
+            d2, b2 = _search_core(alt, sys, top_k=8, online=False, **kw)
+            if not len(d2) or "isn't in our library" in (b2 or '') or (b2 or '').startswith('No books match'):
+                continue                                    # a link must never lead to an empty page
+            live_links.append(alt)
             if 'dedup_key' in d2.columns:
                 d2 = d2[~d2['dedup_key'].isin(shown)]
                 shown |= set(d2['dedup_key'].head(6))
@@ -2219,6 +2505,7 @@ def _search_books(query, sys, mood_filter=None, category_filter=None, top_k=24, 
             if len(d2):
                 d2['section'] = f"Did you mean “{alt}”?"
                 extra.append(d2)
+        suggestions = live_links
         if extra:
             if len(df) and ('section' not in df.columns or not df['section'].fillna('').astype(bool).any()):
                 df = df.copy()

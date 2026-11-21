@@ -36,3 +36,6 @@ Thumbs.db
 
 # stray file from a mistyped command
 Get-Command
+
+# scratch output of tests/typo_positions.py (the full results are in tests/typo_positions.csv)
+tests/typo_positions_failed.txt
