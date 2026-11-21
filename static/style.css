@@ -512,6 +512,8 @@ form.top-filter select { width: min(360px, 100%); }
 .reader-text { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: clamp(20px, 5vw, 48px);
                font-family: 'Fraunces', Georgia, serif; font-size: 1.15rem; line-height: 1.8; color: #2f2722; }
 .reader-text p { margin: 0 0 1.1em; text-align: justify; hyphens: auto; }
+.reader-text pre.keep-lines { font-family: inherit; font-size: 1em; line-height: 1.6; color: inherit; margin: 0 0 1.3em;
+                              white-space: pre-wrap; overflow-x: auto; }
 .reader-text h2 { font-size: 1.3em; text-align: center; margin: 1.4em 0 1em; color: var(--oxblood); }
 .reader-pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 24px 0 8px; flex-wrap: wrap; }
 .pager-jump input { width: 80px; height: 36px; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px; font: inherit; background: var(--card); color: var(--ink); }

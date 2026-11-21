@@ -5,6 +5,7 @@ then cleaned (Gutenberg header/footer removed) and split into pages of paragraph
 """
 import os
 import re
+import textwrap
 import threading
 import requests
 
@@ -77,11 +78,11 @@ def get_text(gid, user_agent):
     os.makedirs(CACHE_DIR, exist_ok=True)
     path = os.path.join(CACHE_DIR, f'{int(gid)}.txt')
     if os.path.exists(path):
-        with open(path, encoding='utf-8') as f:
-            return f.read()
-    text = _download(gid, user_agent)
+        with open(path, encoding='utf-8', newline='') as f:          # raw: older cache files hold doubled line ends
+            return f.read().replace('\r\r\n', '\n').replace('\r\n', '\n')
+    text = _download(gid, user_agent).replace('\r\r\n', '\n').replace('\r\n', '\n')
     tmp = f'{path}.{os.getpid()}.{threading.get_ident()}.tmp'    # write aside, then swap in: never a half file
-    with open(tmp, 'w', encoding='utf-8') as f:
+    with open(tmp, 'w', encoding='utf-8', newline='\n') as f:     # newline='\n': Windows must not turn \n into \r\n again
         f.write(text)
     os.replace(tmp, path)
     return text
@@ -102,14 +103,41 @@ def clean(text):
 CHAPTER = re.compile(r'^(chapter|book|part|act|canto|letter)\b[\s\w.:-]{0,60}$|^[IVXLC]+\.?$', re.I)
 
 
+def wrap_width(text):
+    """How wide the book's ordinary lines are (Gutenberg wraps prose at about 70 characters)."""
+    lengths = sorted(len(l.rstrip()) for l in text.split('\n') if l.strip())
+    return max(lengths[int(len(lengths) * 0.9)], 64) if lengths else 70
+
+
+def keeps_layout(lines, width):
+    """Poems, code, tables and equations only make sense with their line breaks and spaces.
+    Prose is wrapped to the full width, so it is told apart by: lines far shorter than that width (verse),
+    lines indented differently from each other (code, indented verse), or columns made of spaces (tables)."""
+    if len(lines) < 2:
+        return False
+    indents = {len(l) - len(l.lstrip()) for l in lines}
+    varied = len(indents) > 1 and max(indents) >= 2
+    columns = sum(bool(re.search(r'\S {3,}\S', l.strip())) for l in lines) >= 2
+    longest = max(len(l.rstrip()) for l in lines)
+    short = longest <= 0.8 * width and (len(lines) >= 3 or longest <= 0.6 * width)
+    return varied or columns or short
+
+
 def paragraphs(text):
-    """Split into paragraphs; lines inside a paragraph are joined. Headings are marked."""
+    """Split into paragraphs; lines inside a paragraph are joined, except poems, code and tables, which keep
+    their lines ('pre'). Headings are marked."""
     out = []
+    width = wrap_width(text)
     for block in re.split(r'\n\s*\n', text):
+        raw = [l.rstrip() for l in block.expandtabs(4).split('\n') if l.strip()]
         line = ' '.join(block.split())
         if not line or re.fullmatch(r'\[Illustration[^\]]*\]', line, re.I):
             continue                          # picture placeholder: the pictures aren't in the plain text
-        out.append({'text': line, 'heading': bool(CHAPTER.match(line)) and len(line) < 70})
+        heading = bool(CHAPTER.match(line)) and len(line) < 70
+        if not heading and keeps_layout(raw, width):
+            out.append({'text': textwrap.dedent('\n'.join(raw)), 'heading': False, 'pre': True})
+        else:
+            out.append({'text': line, 'heading': heading, 'pre': False})
     return out
 
 

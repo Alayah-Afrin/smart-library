@@ -31,7 +31,7 @@
 
         <article class="reader-text" id="reader-text">
             {% for p in paras %}
-                {% if p.heading %}<h2>{{ p.text }}</h2>{% else %}<p>{{ p.text }}</p>{% endif %}
+                {% if p.heading %}<h2>{{ p.text }}</h2>{% elif p.pre %}<pre class="keep-lines">{{ p.text }}</pre>{% else %}<p>{{ p.text }}</p>{% endif %}
             {% endfor %}
         </article>
 
