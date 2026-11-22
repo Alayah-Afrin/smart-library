@@ -782,3 +782,7 @@ html[data-theme="dark"] .suggestion .dym-link:hover { color: #1c1916; }
 .also-liked h4 { margin: 0 0 6px; font-size: 14px; }
 .also-liked ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
 .also-liked a { color: var(--ink); }
+
+/* learning path: optional time / level / who drop-downs in one row (wrapping on phones) */
+.path-form .path-options { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.path-form .path-options select { flex: 1 1 150px; min-width: 0; }

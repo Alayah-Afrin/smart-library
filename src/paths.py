@@ -117,7 +117,7 @@ FILLER = STOPWORDS | {'learn', 'learning', 'study', 'studying', 'understand', 'm
 ORDINAL_YEAR = re.compile(r'\b(1st|first|2nd|second|3rd|third|4th|fourth|final|last)\s+year\b|\b(senior|junior|sophomore)\b')
 FROM_SCRATCH = re.compile(r'\bfrom (scratch|zero|the beginning)\b|\b(beginner|new to|no experience|never)\b')
 KNOWS = re.compile(r"\b(?:i|i'm|im|already)\s+(?:already\s+)?(?:know|knows|learned|learnt|studied|am familiar with|familiar with|"
-                   r"good at|comfortable with)\s+([a-z0-9 ,&+-]+?)(?:\.|;|$|\bbut\b|\band want\b|\band i\b)")
+                   r"good at|comfortable with)\s+([a-z0-9 ,&+-]+?)(?:\.|;|$|\bbut\b|\band want\b|\band i\b|\b(?:and\s+)?(?:learn|study|want)\b)")
 
 
 def find_subject(goal_f):
@@ -207,9 +207,10 @@ def fit_to_budget(steps, keys, budget):
         gone['status'] = 'later'
         todo.remove(gone)
     base = {id(s): (s['weeks'] if s['status'] == 'learn' else max(1, s['weeks'] // 2)) for s in todo}
+    floor = 2 if budget >= 2 * len(todo) else 1              # no step shorter than 2 weeks when the time allows
     scale = budget / sum(base.values())
-    plan_weeks = {id(s): max(1, round(base[id(s)] * scale)) for s in todo}
-    while sum(plan_weeks.values()) > budget and max(plan_weeks.values()) > 1:
+    plan_weeks = {id(s): max(floor, round(base[id(s)] * scale)) for s in todo}
+    while sum(plan_weeks.values()) > budget and max(plan_weeks.values()) > floor:
         biggest = max(todo, key=lambda s: plan_weeks[id(s)])
         plan_weeks[id(biggest)] -= 1
     while sum(plan_weeks.values()) < budget:
@@ -220,16 +221,79 @@ def fit_to_budget(steps, keys, budget):
     return sum(plan_weeks.values())
 
 
+MIN_WEEKS = 3                    # a route shorter than this is not a plan
+MAX_STRETCH = 3                  # spare time beyond 3x the route is left as revision time, not padded into steps
+ADVANCED = re.compile(r'\b(advanced|expert|experienced|in depth|in-depth)\b')
+INTERMEDIATE = re.compile(r'\b(intermediate|some experience|a little experience|know the basics|know basics)\b')
+WHO = [   # (label, pattern), first match wins
+    ('postgraduate', re.compile(r"\b(masters?|master's|m\.?tech|msc|phd|ph\.d|postgrad\w*|researcher|research)\b")),
+    ('school student', re.compile(r'\b(school|high school|class \d+|grade \d+|(?:8|9|10|11|12)(?:th)?\s*(?:class|grade|std))\b')),
+    ('working professional', re.compile(r"\b(working|professional|employee|full[- ]time|my job|at work|career change|switch(?:ing)? careers?|"
+                                        r"(?:i am|i'm|im|as)\s+an?\s+(?:\w+\s+)?(?:developer|engineer|analyst|teacher|doctor|nurse|"
+                                        r"manager|designer|accountant|lawyer|clerk|consultant))\b")),
+    ('college student', re.compile(r'\b(college|university|undergrad\w*|bachelor\w*|b\.?tech|freshman|sophomore|junior|senior|'
+                                   r'student|first year|second year|third year|fourth year|final year|\d(?:st|nd|rd|th) year)\b')),
+]
+HOURS = re.compile(r'(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\s*(?:a|per|/|each|every)\s*(day|week)')
+
+
 def read_background(goal_f):
-    """What the goal says about the student: their year, 'from scratch', and what they already know."""
+    """What the goal says about the student: year, level, who they are, hours they have, and what they already know."""
     year = ORDINAL_YEAR.search(goal_f)
     year_word = (year.group(1) or year.group(2)) if year else ''
-    advanced_student = year_word in ('2nd', 'second', '3rd', 'third', '4th', 'fourth', 'final', 'last', 'senior', 'junior')
     known = []
     for m in KNOWS.finditer(goal_f):
         known += [w.strip() for w in re.split(r',|\band\b|&', m.group(1)) if w.strip()]
-    return {'year': year_word, 'advanced_student': advanced_student,
-            'from_scratch': bool(FROM_SCRATCH.search(goal_f)), 'known': known}
+    from_scratch = bool(FROM_SCRATCH.search(goal_f))
+    level = ''
+    if INTERMEDIATE.search(goal_f):
+        level = 'intermediate'
+    if ADVANCED.search(goal_f):
+        level = 'advanced'
+    wants_advanced = False
+    if from_scratch and level == 'advanced':               # "from beginner to advanced": the whole road, then more
+        level, wants_advanced = 'beginner', True
+    elif from_scratch:
+        level = 'beginner'
+    who = next((label for label, pat in WHO if pat.search(goal_f)), '')
+    if year_word and not who:
+        who = 'college student'
+    hours = HOURS.search(goal_f)
+    hours_per_week = (float(hours.group(1)) * (7 if hours.group(2) == 'day' else 1)) if hours else 0
+    advanced_student = (year_word in ('2nd', 'second', '3rd', 'third', '4th', 'fourth', 'final', 'last', 'senior', 'junior')
+                        or level in ('intermediate', 'advanced') or who == 'postgraduate')
+    return {'year': year_word, 'advanced_student': advanced_student, 'from_scratch': from_scratch, 'known': known,
+            'level': level, 'who': who, 'hours_per_week': hours_per_week, 'wants_advanced': wants_advanced}
+
+
+def effective(s):
+    """Weeks this step really takes in the plan (a quick review is half, known/later steps take none)."""
+    if s['status'] in ('known', 'later'):
+        return 0
+    return s['weeks'] if s['status'] == 'learn' else max(1, s['weeks'] // 2)
+
+
+def scale_weeks(todo, target):
+    """Spread `target` weeks over these steps in proportion to how long each takes (largest remainder, so the sum is exact)."""
+    base = [effective(s) for s in todo]
+    raw = [b * target / sum(base) for b in base]
+    out = [max(1, int(r)) for r in raw]
+    while sum(out) < target:
+        i = max(range(len(todo)), key=lambda i: raw[i] - out[i])
+        out[i] += 1
+    while sum(out) > target and max(out) > 1:
+        i = max(range(len(todo)), key=lambda i: out[i])
+        out[i] -= 1
+    for s, w in zip(todo, out):
+        s['eff'] = w
+
+
+def going_further(steps, keys):
+    """An extra 'deeper' step after the step that IS the subject (for advanced learners, or when there is lots of time)."""
+    core = next((s for s in reversed(steps) if is_core(s, keys)), steps[-1])
+    name = core['label'].replace(' foundations', '')
+    return dict(step(f'Going further in {name.lower()}', 'advanced ' + core['query'], 4,
+                     'Deeper, more specialised material once the core is solid.', words=['@going-further']), advanced=True)
 
 
 def topic_words(goal_f):
@@ -333,7 +397,7 @@ def plan(goal, sys):
         return {'error': 'Tell us what you want to learn, e.g. "I\'m a 3rd-year student and want to learn ML from scratch".'}
     goal_f = fold(goal)
     background = read_background(goal_f)
-    budget = time_budget(goal_f)
+    budget = time_budget(HOURS.sub(' ', goal_f))      # "2 hours a day" is hours, not a time limit
     keys = find_subjects(goal_f)
     if not keys and find_subject(goal_f):             # a close spelling ("machin learning")
         keys = [find_subject(goal_f)]
@@ -358,18 +422,63 @@ def plan(goal, sys):
         steps = [dict(s) for s in steps]
 
     known_text = ' '.join(background['known'])
-    used, total = set(), 0
-    for s in steps:
+    notes = []
+    if budget is not None and budget < MIN_WEEKS:
+        notes.append(f'A route needs at least {MIN_WEEKS} weeks to be useful, so this plan uses {MIN_WEEKS} weeks.')
+        budget = MIN_WEEKS
+    if key and (background['level'] == 'advanced' or background['wants_advanced']):
+        steps.append(going_further(steps, keys))
+
+    def set_status(s):
         s['status'] = 'learn'
         if known_text and any(w in known_text for w in s['words']):
             s['status'] = 'known'                        # "i already know python"
         elif s['foundation'] and background['advanced_student']:
-            s['status'] = 'review'                       # 3rd-year student: probably seen it, quick review
-        if s['status'] != 'known':
-            total += s['weeks'] if s['status'] == 'learn' else max(1, s['weeks'] // 2)
-    full_weeks, fast_track = total, False
+            s['status'] = 'review'                       # 3rd-year student / intermediate: quick review
+
+    for s in steps:
+        set_status(s)
+    total = sum(effective(s) for s in steps)
+    if key and budget and budget >= 2 * total and not any(s.get('advanced') for s in steps):
+        steps.append(going_further(steps, keys))         # lots of time: add a deeper step
+        set_status(steps[-1])
+        total = sum(effective(s) for s in steps)
+    full_weeks, fast_track, relaxed = total, False, False
+    todo = [s for s in steps if s['status'] not in ('known', 'later')]
     if key and budget and total > budget:
         total, fast_track = fit_to_budget(steps, keys, budget), True
+    elif todo:
+        target = total
+        if budget:                                       # more time than the route needs: spread it out
+            target = min(budget, total * MAX_STRETCH)
+            relaxed = target > total
+            if relaxed:
+                notes.append(f'You have {budget} weeks, more than the {total} this route needs, so the steps are spread out '
+                             f'at a relaxed pace: time for exercises and a small project in each step.'
+                             + (f' The other {budget - target} weeks are spare time for revision.' if budget > target else ''))
+        else:
+            hours = background['hours_per_week']
+            pace = min(3, max(0.6, 10 / hours)) if hours else (1.5 if background['who'] == 'working professional' else 1)
+            if pace != 1:                                # 10 study hours a week is the baseline of the route
+                target = round(total * pace)
+                notes.append(f'At about {hours:g} study hours a week the route takes about {target} weeks.' if hours else
+                             f'Next to a job, we planned a part-time pace: about {target} weeks.')
+        target = max(MIN_WEEKS, target)
+        if target != total:
+            scale_weeks(todo, target)
+            total = target
+    for s in steps:
+        s.setdefault('eff', effective(s))
+    who, level = background['who'], background['level']
+    if level in ('intermediate', 'advanced') and not background['year']:
+        notes.append(f'As an {level} learner, the basics are only a quick review.'
+                     + (' A "Going further" step is added at the end.'
+                        if steps[-1].get('advanced') and steps[-1]['status'] != 'later' else ''))
+    elif background['wants_advanced']:
+        notes.append('You asked for beginner to advanced, so the route ends with a "Going further" step.')
+    if who == 'school student':
+        notes.append('Planned for a school student: the maths steps are kept in full, because they are the base of everything after.')
+    used = set()
     for s in steps:
         s['books'] = pick_books(sys, s['query'], used) if s['status'] != 'later' else []
     if not key:
@@ -377,4 +486,5 @@ def plan(goal, sys):
         if not steps:
             return {'error': f'We don\'t have books for "{label}" yet. Try a related subject or a simpler name.'}
     return {'subject': label, 'goal': goal, 'background': background, 'steps': steps, 'weeks': total,
-            'mapped': key is not None, 'budget': budget, 'fast_track': fast_track, 'full_weeks': full_weeks}
+            'mapped': key is not None, 'budget': budget, 'fast_track': fast_track, 'full_weeks': full_weeks,
+            'relaxed': relaxed, 'notes': notes}

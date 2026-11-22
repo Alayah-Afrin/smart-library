@@ -100,6 +100,15 @@ if __name__ == '__main__':
         ('Learning path', 'neural networks', lambda p: p['subject'] == 'deep learning'),
         ('Learning path', 'economics', lambda p: len(p['steps']) == 3),
         ('Learning path', 'asdfghjk', lambda p: 'error' in p),
+        # more time than the route needs: the plan must follow the time, not stay the same
+        ('Learning path', 'calculus in 2 months', lambda p: p['weeks'] == 8),
+        ('Learning path', 'calculus in 4 months', lambda p: p['weeks'] == 16),
+        ('Learning path', 'learn python in 1 week', lambda p: p['weeks'] >= 3),      # never under 3 weeks
+        ('Learning path', 'advanced machine learning',
+         lambda p: p['steps'][0]['status'] == 'review' and p['steps'][-1].get('advanced')),
+        ('Learning path', 'python for a working professional', lambda p: p['weeks'] > 10),
+        ('Learning path', 'learn python, 2 hours a day', lambda p: p['weeks'] >= 3 and not p['fast_track']),
+        ('Learning path', 'i want to become a web developer', lambda p: p['weeks'] == 13),
     ]
     for kind, goal, check in PATHS:
         try:

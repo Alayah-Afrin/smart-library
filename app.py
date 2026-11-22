@@ -272,18 +272,30 @@ def top():
                            selected_category=category or '')
 
 
+# (sentence added to the goal, label shown) - choosing one works exactly like typing it in the goal
+PATH_OPTIONS = {
+    'time': [('within 3 weeks', '3 weeks'), ('within 1 month', '1 month'), ('within 2 months', '2 months'),
+             ('within 3 months', '3 months'), ('within 6 months', '6 months'), ('within 1 year', '1 year')],
+    'level': [('beginner', 'Beginner'), ('intermediate', 'Intermediate'), ('advanced', 'Advanced')],
+    'who': [('i am a school student', 'School student'), ('i am a college student', 'College student'),
+            ('i am a postgraduate student', 'Postgraduate'), ('i am working full time', 'Working professional')],
+}
+
+
 @app.route('/path')
 def learning_path():
     """Learning-path planner: "I'm a 3rd-year student and want to learn ML from scratch" -> a route of steps."""
     goal = (request.args.get('goal') or '')[:300]
+    chosen = {k: (request.args.get(k) if request.args.get(k) in dict(PATH_OPTIONS[k]) else '') for k in PATH_OPTIONS}
     plan = None
     if goal.strip():
-        plan = paths.plan(goal, system)
+        plan = paths.plan(' '.join([goal] + [v for v in chosen.values() if v]), system)
         for step in plan.get('steps', []):
             clean = [{k: ('' if isinstance(v, float) and v != v else v) for k, v in b.items()} for b in step['books']]
             step['books'] = decorate(clean)
     return render_template('index.html', page='path', plan=plan, goal=goal, results=[], query='',
-                           category_groups=list(CATEGORY_GROUPS.keys()), selected_category='')
+                           path_options=PATH_OPTIONS, sel_time=chosen['time'], sel_level=chosen['level'],
+                           sel_who=chosen['who'], category_groups=list(CATEGORY_GROUPS.keys()), selected_category='')
 
 
 _BY_KEY = {}
